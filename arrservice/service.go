@@ -31,7 +31,11 @@ func NewService(name string, cfg config.ServiceConfig) *Service {
 		if header == "" {
 			header = "X-Api-Key"
 		}
-		svc.Auth = &HeaderAuth{Header: header, Key: cfg.APIKey}
+		key := cfg.APIKey
+		if cfg.AuthPrefix != "" {
+			key = cfg.AuthPrefix + " " + key
+		}
+		svc.Auth = &HeaderAuth{Header: header, Key: key}
 	}
 
 	return svc

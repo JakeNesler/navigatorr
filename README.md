@@ -14,6 +14,7 @@ Navigatorr acts as a bridge between AI coding assistants and your self-hosted me
 - **Prowlarr** — Indexer management
 - **Bazarr** — Subtitle management
 - **Overseerr/Jellyseerr** — Request management
+- **Audiobookshelf** — Audiobook management
 - **Transmission** — Torrent client
 - **qBittorrent** — Torrent client
 

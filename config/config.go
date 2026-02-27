@@ -21,6 +21,7 @@ type ServiceConfig struct {
 	APIKey     string `yaml:"api_key"`
 	AuthMethod string `yaml:"auth_method"` // "header", "query", "basic"
 	AuthHeader string `yaml:"auth_header"` // custom header name, defaults to X-Api-Key
+	AuthPrefix string `yaml:"auth_prefix"` // prefix for the key value, e.g. "Bearer"
 	APIVersion string `yaml:"api_version"` // e.g. "/api/v3"
 	OpenAPIURL string `yaml:"openapi_url"` // override spec URL
 }
@@ -69,8 +70,15 @@ func Load(path string) (*Config, error) {
 			}
 		}
 		if svc.AuthHeader == "" {
-			if svc.AuthMethod == "header" {
+			if h, ok := DefaultAuthHeaders[name]; ok {
+				svc.AuthHeader = h
+			} else if svc.AuthMethod == "header" {
 				svc.AuthHeader = "X-Api-Key"
+			}
+		}
+		if svc.AuthPrefix == "" {
+			if p, ok := DefaultAuthPrefixes[name]; ok {
+				svc.AuthPrefix = p
 			}
 		}
 		if svc.APIVersion == "" {
