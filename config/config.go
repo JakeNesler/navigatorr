@@ -9,9 +9,11 @@ import (
 )
 
 type Config struct {
-	Services     map[string]ServiceConfig `yaml:"services"`
-	Transmission TransmissionConfig       `yaml:"transmission"`
-	QBittorrent  QBittorrentConfig        `yaml:"qbittorrent"`
+	Services           map[string]ServiceConfig `yaml:"services"`
+	Transmission       TransmissionConfig       `yaml:"transmission"`
+	QBittorrent        QBittorrentConfig        `yaml:"qbittorrent"`
+	MaxResponseSizeKB  int                      `yaml:"max_response_size_kb"`
+	AllowDestructive   bool                     `yaml:"allow_destructive"`
 }
 
 type ServiceConfig struct {
@@ -82,6 +84,11 @@ func Load(path string) (*Config, error) {
 			}
 		}
 		cfg.Services[name] = svc
+	}
+
+	// Default response size guard to 50KB if not set.
+	if cfg.MaxResponseSizeKB <= 0 {
+		cfg.MaxResponseSizeKB = 50
 	}
 
 	return cfg, nil

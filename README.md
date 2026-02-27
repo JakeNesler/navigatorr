@@ -1,6 +1,6 @@
 # Navigatorr
 
-An MCP (Model Context Protocol) server that gives AI assistants like Claude direct access to your *arr media stack and Transmission torrent client. Browse API documentation, make authenticated calls, and manage downloads — all through natural language.
+An MCP (Model Context Protocol) server that gives AI assistants like Claude direct access to your *arr media stack and torrent clients. Browse API documentation, make authenticated calls, and manage downloads — all through natural language.
 
 ## What It Does
 
@@ -13,8 +13,9 @@ Navigatorr acts as a bridge between AI coding assistants and your self-hosted me
 - **Readarr** — Book management
 - **Prowlarr** — Indexer management
 - **Bazarr** — Subtitle management
-- **Overseerr** — Request management
+- **Overseerr/Jellyseerr** — Request management
 - **Transmission** — Torrent client
+- **qBittorrent** — Torrent client
 
 ## Architecture
 
@@ -26,7 +27,7 @@ Claude Code / MCP Client
    │ Navigatorr  │  MCP Server (stdio transport)
    │              │
    │  ┌────────┐  │
-   │  │ Tools  │  │  12 MCP tools exposed
+   │  │ Tools  │  │  16 MCP tools exposed
    │  └───┬────┘  │
    │      │       │
    │  ┌───▼────┐  │
@@ -40,7 +41,7 @@ Claude Code / MCP Client
    └──────┬───────┘
           │
           ▼
-   *arr services + Transmission
+   *arr services + Transmission/qBittorrent
 ```
 
 ### Package Structure
@@ -53,6 +54,7 @@ Claude Code / MCP Client
 | `openapi` | OpenAPI spec fetching, parsing, caching, and search |
 | `tools` | MCP tool registration and handlers |
 | `transmission` | Transmission RPC client |
+| `qbit` | qBittorrent Web API client |
 | `internal` | Shared logging utilities |
 
 ### How It Works
@@ -63,10 +65,11 @@ Claude Code / MCP Client
 
 3. **OpenAPI Spec Store** — On startup, fetches and parses OpenAPI specs from each service's official GitHub repo. Specs are cached to disk (`~/.cache/navigatorr/`) and indexed for fast endpoint lookup and full-text search.
 
-4. **Tool Registration** — Three categories of tools are registered with the MCP server:
+4. **Tool Registration** — Four categories of tools are registered with the MCP server:
    - **API Documentation tools** — browse and search service endpoints without making calls
-   - **API Call tool** — make authenticated requests with field selection, filtering, and pagination
+   - **API Call tool** — make authenticated requests with field selection, filtering, and pagination. Includes a configurable response size guard that catches oversized responses before they eat the LLM's context window, and optional destructive request protection that blocks DELETE calls unless explicitly enabled.
    - **Transmission tools** — manage torrents (list, add, start, stop, remove, verify, free space)
+   - **qBittorrent tools** — manage torrents (list, add, pause, resume, delete, transfer stats)
 
 5. **Stdio Transport** — Communicates with the MCP client over stdin/stdout using JSON-RPC, making it compatible with any MCP host (Claude Code, Cursor, etc.).
 
@@ -86,7 +89,7 @@ Claude Code / MCP Client
 
 | Tool | Description |
 |------|-------------|
-| `call_api` | Make authenticated API calls to any service. Supports field selection, filtering (`field:op:value`), and result limiting to keep responses manageable |
+| `call_api` | Make authenticated API calls to any service. Supports field selection (including nested array drilling like `records.title`), filtering (`field:op:value`), and result limiting. Includes a response size guard and optional DELETE protection. |
 
 ### Transmission
 
@@ -97,13 +100,22 @@ Claude Code / MCP Client
 | `transmission_manage_torrent` | Start, stop, remove, or verify torrents |
 | `transmission_free_space` | Check available disk space |
 
+### qBittorrent
+
+| Tool | Description |
+|------|-------------|
+| `qbit_list_torrents` | List all torrents with status, progress, and speeds |
+| `qbit_add_torrent` | Add a torrent by magnet link or URL |
+| `qbit_manage_torrent` | Pause, resume, delete, or delete with files |
+| `qbit_transfer_info` | Global transfer speed and statistics |
+
 ## Setup
 
 ### Prerequisites
 
 - Go 1.25+
 - Running *arr services with API keys
-- (Optional) Transmission torrent client
+- (Optional) Transmission and/or qBittorrent torrent client
 
 ### Option 1: Build from Source
 
@@ -127,6 +139,13 @@ cp config.yaml.example ~/.config/navigatorr/config.yaml
 ```
 
 Edit `~/.config/navigatorr/config.yaml` with your service URLs and API keys. You can find API keys in each service's Settings > General page.
+
+**Optional global settings:**
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `max_response_size_kb` | `50` | Response size guard threshold in KB. API responses exceeding this are rejected with a hint to use field selection/filtering instead of consuming the LLM's context window. |
+| `allow_destructive` | `false` | When false, blocks all DELETE requests through `call_api`. Set to `true` to enable deletions. |
 
 ### Connect to Claude Code
 
@@ -187,9 +206,10 @@ Once connected, you can ask Claude things like:
 - "Search for a new series and add it"
 - "Show me all movies missing from Radarr"
 - "What torrents are currently downloading?"
-- "Add this magnet link to Transmission"
+- "Add this magnet link to qBittorrent"
 - "How much free disk space do I have?"
 - "Delete a series and re-add it with a different quality profile"
+- "Unmonitor all movies in a franchise except the recent ones"
 
 The AI uses Navigatorr's tools behind the scenes to browse API docs, discover the right endpoints, and make authenticated calls on your behalf.
 
@@ -250,16 +270,15 @@ Another.Show.S03.Pack → seeding (100%)
 
 The real power is that Claude chains tools automatically. Say:
 
-> "Delete all my anime episodes and re-add the series with only dubbed releases"
+> "Delete a series and re-add it with a different quality profile"
 
 Claude will:
 1. `call_api` GET /series → find the series ID
 2. `call_api` DELETE /series/{id} with deleteFiles=true
-3. `search_api` → discover the custom format endpoints
-4. `call_api` POST → create a "Dual Audio" custom format
-5. `call_api` POST → create a quality profile requiring that format
-6. `call_api` POST /series → re-add with the new profile
-7. `call_api` POST /command → trigger a search
+3. `search_api` → discover the quality profile endpoints
+4. `call_api` GET /qualityprofile → list available profiles
+5. `call_api` POST /series → re-add with the new profile
+6. `call_api` POST /command → trigger a search
 
 All from one sentence.
 
