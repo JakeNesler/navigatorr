@@ -1,0 +1,30 @@
+# Navigatorrr configuration
+# Copy to ~/.config/navigatorr/config.yaml and fill in your values
+
+services:
+  sonarr:
+    url: "http://localhost:8989"
+    api_key: "your-sonarr-api-key"
+  radarr:
+    url: "http://localhost:7878"
+    api_key: "your-radarr-api-key"
+  lidarr:
+    url: "http://localhost:8686"
+    api_key: "your-lidarr-api-key"
+  readarr:
+    url: "http://localhost:8787"
+    api_key: "your-readarr-api-key"
+  prowlarr:
+    url: "http://localhost:9696"
+    api_key: "your-prowlarr-api-key"
+  bazarr:
+    url: "http://localhost:6767"
+    api_key: "your-bazarr-api-key"
+  overseerr:
+    url: "http://localhost:5055"
+    api_key: "your-overseerr-api-key"
+
+transmission:
+  url: "http://localhost:9091"
+  username: ""
+  password: ""
