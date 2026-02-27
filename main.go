@@ -10,6 +10,7 @@ import (
 	"github.com/jakenesler/navigatorr/config"
 	"github.com/jakenesler/navigatorr/internal"
 	"github.com/jakenesler/navigatorr/openapi"
+	"github.com/jakenesler/navigatorr/qbit"
 	"github.com/jakenesler/navigatorr/tools"
 	"github.com/jakenesler/navigatorr/transmission"
 	"github.com/mark3labs/mcp-go/server"
@@ -47,16 +48,27 @@ func main() {
 		internal.Logf("transmission client configured: %s", cfg.Transmission.URL)
 	}
 
+	// Build qBittorrent client if configured
+	var qbClient *qbit.Client
+	if cfg.QBittorrent.URL != "" {
+		qbClient = qbit.NewClient(
+			cfg.QBittorrent.URL,
+			cfg.QBittorrent.Username,
+			cfg.QBittorrent.Password,
+		)
+		internal.Logf("qbittorrent client configured: %s", cfg.QBittorrent.URL)
+	}
+
 	// Create MCP server
 	s := server.NewMCPServer(
 		"navigatorr",
 		"1.0.0",
 		server.WithToolCapabilities(true),
-		server.WithInstructions("Navigatorrr provides tools to browse *arr service API documentation, make authenticated API calls to Sonarr/Radarr/Lidarr/etc., and manage Transmission torrents. Use list_services to see available services, search_api to find endpoints, and call_api to make requests."),
+		server.WithInstructions("Navigatorrr provides tools to browse *arr service API documentation, make authenticated API calls to Sonarr/Radarr/Lidarr/Jellyseerr/etc., manage Transmission torrents, and manage qBittorrent torrents. Use list_services to see available services, search_api to find endpoints, and call_api to make requests."),
 	)
 
 	// Register all tools
-	tools.RegisterAll(s, cfg, registry, specStore, txClient)
+	tools.RegisterAll(s, cfg, registry, specStore, txClient, qbClient)
 
 	internal.Logf("starting navigatorr MCP server (stdio)")
 

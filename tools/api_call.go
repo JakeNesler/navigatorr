@@ -98,7 +98,44 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 		jsonResp = processResponse(jsonResp, fieldsStr, filterStr, limitStr)
 	}
 
+	// Response size guard — catch unfiltered firehose responses before they
+	// eat the LLM's context window. If the caller already applied filtering
+	// we trust them; only block raw, unprocessed dumps.
+	const maxResponseBytes = 50_000 // ~50KB
 	data, _ := json.MarshalIndent(jsonResp, "", "  ")
+
+	if len(data) > maxResponseBytes && !needsProcessing {
+		sizeKB := len(respBody) / 1024
+		itemCount := 0
+		var availableFields []string
+		if arr, ok := jsonResp.([]any); ok {
+			itemCount = len(arr)
+			// Peek at first item to discover available field names
+			if len(arr) > 0 {
+				if obj, ok := arr[0].(map[string]any); ok {
+					for k := range obj {
+						availableFields = append(availableFields, k)
+					}
+				}
+			}
+		}
+
+		hint := fmt.Sprintf(
+			"⚠️ Response too large (%dKB", sizeKB)
+		if itemCount > 0 {
+			hint += fmt.Sprintf(", %d items", itemCount)
+		}
+		hint += "). This would consume excessive tokens.\n\n"
+		hint += "Retry this call with the fields param to select only the fields you need.\n"
+		if len(availableFields) > 0 {
+			hint += fmt.Sprintf("Available fields: %s\n", strings.Join(availableFields, ", "))
+		}
+		hint += "\nYou can also use filter (e.g. \"title:contains:SearchTerm\") and limit params."
+		hint += "\nDo NOT retry this call without fields, filter, or limit."
+
+		return mcp.NewToolResultError(hint), nil
+	}
+
 	return mcp.NewToolResultText(string(data)), nil
 }
 

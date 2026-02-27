@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Services     map[string]ServiceConfig     `yaml:"services"`
-	Transmission TransmissionConfig           `yaml:"transmission"`
+	Services     map[string]ServiceConfig `yaml:"services"`
+	Transmission TransmissionConfig       `yaml:"transmission"`
+	QBittorrent  QBittorrentConfig        `yaml:"qbittorrent"`
 }
 
 type ServiceConfig struct {
@@ -23,6 +24,12 @@ type ServiceConfig struct {
 }
 
 type TransmissionConfig struct {
+	URL      string `yaml:"url"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+type QBittorrentConfig struct {
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
