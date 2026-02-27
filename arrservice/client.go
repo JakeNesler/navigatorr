@@ -27,7 +27,7 @@ func (s *Service) DoRequest(ctx context.Context, method, path string, query map[
 		return nil, 0, fmt.Errorf("creating request: %w", err)
 	}
 
-	if body != nil {
+	if method == "POST" || method == "PUT" || method == "PATCH" {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	req.Header.Set("Accept", "application/json")

@@ -63,13 +63,21 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 		}
 	}
 
-	// Parse body
+	// Parse body — handle both string and object forms.
+	// Some MCP clients may deserialize a JSON body string into an object.
 	var body []byte
 	if bodyStr != "" {
 		if !json.Valid([]byte(bodyStr)) {
 			return mcp.NewToolResultError("invalid body JSON"), nil
 		}
 		body = []byte(bodyStr)
+	} else if raw, ok := req.GetArguments()["body"]; ok && raw != nil {
+		// Body was passed as a JSON object, not a string — marshal it back.
+		b, err := json.Marshal(raw)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("invalid body: %v", err)), nil
+		}
+		body = b
 	}
 
 	respBody, statusCode, err := svc.DoRequest(ctx, method, path, query, body)
