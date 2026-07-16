@@ -20,9 +20,9 @@ services:
   bazarr:
     url: "http://localhost:6767"
     api_key: "your-bazarr-api-key"
-  overseerr:
+  seerr:
     url: "http://localhost:5055"
-    api_key: "your-overseerr-api-key"
+    api_key: "your-seerr-api-key"
 
 transmission:
   url: "http://localhost:9091"

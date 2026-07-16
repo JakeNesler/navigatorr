@@ -13,7 +13,8 @@ Navigatorr acts as a bridge between AI coding assistants and your self-hosted me
 - **Readarr** — Book management
 - **Prowlarr** — Indexer management
 - **Bazarr** — Subtitle management
-- **Overseerr/Jellyseerr** — Request management
+- **Seerr** — Request management (successor to Overseerr)
+- **Overseerr/Jellyseerr** — Request management (legacy, still supported)
 - **Audiobookshelf** — Audiobook management
 - **Transmission** — Torrent client
 - **qBittorrent** — Torrent client
@@ -226,7 +227,7 @@ sonarr    → http://your-server:8989 (235 endpoints)
 radarr    → http://your-server:7878 (238 endpoints)
 lidarr    → http://your-server:8686 (236 endpoints)
 prowlarr  → http://your-server:9696 (129 endpoints)
-overseerr → http://your-server:5055 (170 endpoints)
+seerr     → http://your-server:5055 (170 endpoints)
 ...
 ```
 
