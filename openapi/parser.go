@@ -3,6 +3,7 @@ package openapi
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -21,7 +22,7 @@ func Parse(ctx context.Context, service string, data []byte) (*Index, error) {
 	// Validate (non-fatal — some specs have minor issues)
 	if err := doc.Validate(ctx); err != nil {
 		// Log but don't fail
-		fmt.Printf("warning: spec validation for %s: %v\n", service, err)
+		fmt.Fprintf(os.Stderr, "warning: spec validation for %s: %v\n", service, err)
 	}
 
 	return buildIndex(service, doc), nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -41,7 +42,7 @@ func Fetch(ctx context.Context, url string, cache *Cache) ([]byte, error) {
 	// Cache to disk
 	if err := cache.Put(url, data); err != nil {
 		// Non-fatal, just log
-		fmt.Printf("warning: failed to cache spec: %v\n", err)
+		fmt.Fprintf(os.Stderr, "warning: failed to cache spec: %v\n", err)
 	}
 
 	return data, nil
