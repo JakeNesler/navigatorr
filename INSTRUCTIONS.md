@@ -68,12 +68,14 @@ filter: "hasFile:eq:true"
 
 ### Safety Features
 
-**Response Size Guard:** If a response exceeds the configured threshold (default 50KB), the tool returns an error with:
+**Response Size Guard:** If a response exceeds the configured threshold (default 50KB), the tool returns a warning instead of the data, containing:
 - The response size and item count
 - All available field names discovered from the first item
 - An example `fields` parameter to retry with
 
 This prevents a single API call from consuming the LLM's entire context window.
+
+**HTTP Status Errors:** Any non-2xx response is returned as a tool error naming the status code, with the service's response body included (truncated at 2KB). *arr services return a JSON body on failure, so without this an auth or validation failure would parse cleanly and read as a successful call.
 
 **DELETE Protection:** By default, all DELETE requests are blocked. The LLM will receive a clear error message. To enable deletions, set `allow_destructive: true` in your config.
 

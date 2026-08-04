@@ -43,9 +43,27 @@ func (c *Cache) Get(url string) []byte {
 	return data
 }
 
-// Put stores data in the cache.
+// Put stores data in the cache. The write goes to a temp file and is renamed
+// into place, so an interrupted write cannot leave a truncated spec that the
+// next 24 hours of cache hits would fail to parse.
 func (c *Cache) Put(url string, data []byte) error {
-	return os.WriteFile(c.cacheFile(url), data, 0644)
+	tmp, err := os.CreateTemp(c.dir, ".tmp-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmp.Name(), 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), c.cacheFile(url))
 }
 
 // Invalidate removes a cached entry.

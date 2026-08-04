@@ -33,7 +33,7 @@ func registerAPICallTool(s *server.MCPServer, registry *arrservice.Registry, max
 
 func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrservice.Registry, maxResponseSizeKB int, allowDestructive bool) (*mcp.CallToolResult, error) {
 	svcName := mcp.ParseString(req, "service", "")
-	method := strings.ToUpper(mcp.ParseString(req, "method", "GET"))
+	method := strings.ToUpper(strings.TrimSpace(mcp.ParseString(req, "method", "GET")))
 	path := mcp.ParseString(req, "path", "")
 	queryStr := mcp.ParseString(req, "query", "")
 	bodyStr := mcp.ParseString(req, "body", "")
@@ -87,6 +87,15 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 	respBody, statusCode, err := svc.DoRequest(ctx, method, path, query, body)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("request failed: %v", err)), nil
+	}
+
+	// A non-2xx status must surface as an error. *arr services return a JSON
+	// body on failure, so without this an auth or validation failure parses
+	// cleanly and reads as a successful call.
+	if statusCode < 200 || statusCode > 299 {
+		return mcp.NewToolResultError(fmt.Sprintf(
+			"%s %s failed: HTTP %d\n%s",
+			method, path, statusCode, truncate(string(respBody), 2000))), nil
 	}
 
 	// Parse response JSON
@@ -334,7 +343,8 @@ func applyFilter(arr []any, filterStr string) []any {
 	}
 	field, op, value := parts[0], parts[1], parts[2]
 
-	var result []any
+	// Non-nil so a filter that matches nothing marshals as [] rather than null.
+	result := make([]any, 0, len(arr))
 	for _, item := range arr {
 		obj, ok := item.(map[string]any)
 		if !ok {
@@ -342,6 +352,11 @@ func applyFilter(arr []any, filterStr string) []any {
 		}
 		fieldVal := getNestedField(obj, field)
 		if fieldVal == nil {
+			// An absent field is "not equal" to any value; every other op
+			// needs something to compare against.
+			if op == "ne" {
+				result = append(result, item)
+			}
 			continue
 		}
 		if matchFilter(fieldVal, op, value) {
@@ -349,6 +364,15 @@ func applyFilter(arr []any, filterStr string) []any {
 		}
 	}
 	return result
+}
+
+// truncate caps a string for inclusion in a tool result, so a large error
+// body cannot eat the LLM's context window.
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + fmt.Sprintf("\n... (truncated, %d bytes total)", len(s))
 }
 
 // getNestedField retrieves a value using dot notation.

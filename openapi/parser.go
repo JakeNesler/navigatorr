@@ -65,7 +65,10 @@ func buildIndex(service string, doc *openapi3.T) *Index {
 					Description: p.Description,
 				}
 				if p.Schema != nil && p.Schema.Value != nil {
-					pi.Type = p.Schema.Value.Type.Slice()[0]
+					// Type is absent on oneOf/anyOf/$ref-only schemas.
+					if types := p.Schema.Value.Type.Slice(); len(types) > 0 {
+						pi.Type = types[0]
+					}
 				}
 				detail.Parameters = append(detail.Parameters, pi)
 			}

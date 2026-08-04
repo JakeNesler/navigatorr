@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/jakenesler/navigatorr/arrservice"
@@ -139,7 +140,14 @@ func handleListEndpoints(_ context.Context, store *openapi.Store, svcName, tag, 
 		tagMap[t] = append(tagMap[t], ep)
 	}
 
-	for t, eps := range tagMap {
+	tags := make([]string, 0, len(tagMap))
+	for t := range tagMap {
+		tags = append(tags, t)
+	}
+	sort.Strings(tags)
+
+	for _, t := range tags {
+		eps := tagMap[t]
 		sb.WriteString(fmt.Sprintf("## %s\n", t))
 		for _, ep := range eps {
 			sb.WriteString(fmt.Sprintf("- %s %s — %s\n", ep.Method, ep.Path, ep.Summary))
@@ -204,8 +212,13 @@ func handleRefreshSpecs(ctx context.Context, store *openapi.Store, svcName strin
 	if len(errors) > 0 {
 		var sb strings.Builder
 		sb.WriteString("Refresh completed with errors:\n")
-		for svc, err := range errors {
-			sb.WriteString(fmt.Sprintf("- %s: %v\n", svc, err))
+		names := make([]string, 0, len(errors))
+		for svc := range errors {
+			names = append(names, svc)
+		}
+		sort.Strings(names)
+		for _, svc := range names {
+			sb.WriteString(fmt.Sprintf("- %s: %v\n", svc, errors[svc]))
 		}
 		return mcp.NewToolResultText(sb.String()), nil
 	}

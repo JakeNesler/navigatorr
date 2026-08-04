@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"github.com/jakenesler/navigatorr/config"
@@ -78,12 +79,18 @@ func (s *Store) Search(query, serviceName string) []EndpointSummary {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	names := make([]string, 0, len(s.indices))
+	for name := range s.indices {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
 	var results []EndpointSummary
-	for name, idx := range s.indices {
+	for _, name := range names {
 		if serviceName != "" && name != serviceName {
 			continue
 		}
-		results = append(results, idx.Search(query)...)
+		results = append(results, s.indices[name].Search(query)...)
 	}
 	return results
 }

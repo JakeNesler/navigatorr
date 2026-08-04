@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -56,37 +57,72 @@ func (idx *Index) Filter(tag, method string) []EndpointSummary {
 			})
 		}
 	}
-	return results
+	return sortSummaries(results)
 }
 
 // GetDetail returns full details for a specific endpoint.
+// Falls back to the closest matching path, preferring a prefix match over a
+// suffix one and the shortest candidate within each. Map iteration order is
+// random, so the fallback must sort or the same query returns a different
+// endpoint on every call.
 func (idx *Index) GetDetail(path, method string) (*EndpointDetail, error) {
 	methods, ok := idx.Endpoints[path]
 	if !ok {
-		// Try prefix match
-		for p, m := range idx.Endpoints {
-			if strings.HasSuffix(p, path) || strings.HasPrefix(p, path) {
-				methods = m
-				path = p
-				ok = true
-				break
+		var prefixed, suffixed []string
+		for p := range idx.Endpoints {
+			switch {
+			case strings.HasPrefix(p, path):
+				prefixed = append(prefixed, p)
+			case strings.HasSuffix(p, path):
+				suffixed = append(suffixed, p)
 			}
 		}
-		if !ok {
+		candidates := prefixed
+		if len(candidates) == 0 {
+			candidates = suffixed
+		}
+		if len(candidates) == 0 {
 			return nil, fmt.Errorf("endpoint %s not found", path)
 		}
+		sort.Slice(candidates, func(i, j int) bool {
+			if len(candidates[i]) != len(candidates[j]) {
+				return len(candidates[i]) < len(candidates[j])
+			}
+			return candidates[i] < candidates[j]
+		})
+		path = candidates[0]
+		methods = idx.Endpoints[path]
 	}
 
-	detail, ok := methods[method]
-	if !ok {
-		// Return first available method
-		for _, d := range methods {
-			return d, nil
-		}
+	if detail, ok := methods[method]; ok {
+		return detail, nil
+	}
+
+	// Fall back to the first method by name, so repeated calls agree.
+	names := make([]string, 0, len(methods))
+	for m := range methods {
+		names = append(names, m)
+	}
+	if len(names) == 0 {
 		return nil, fmt.Errorf("method %s not found for %s", method, path)
 	}
+	sort.Strings(names)
+	return methods[names[0]], nil
+}
 
-	return detail, nil
+// sortSummaries orders results by path then method so tool output is stable
+// across calls.
+func sortSummaries(s []EndpointSummary) []EndpointSummary {
+	sort.Slice(s, func(i, j int) bool {
+		if s[i].Service != s[j].Service {
+			return s[i].Service < s[j].Service
+		}
+		if s[i].Path != s[j].Path {
+			return s[i].Path < s[j].Path
+		}
+		return s[i].Method < s[j].Method
+	})
+	return s
 }
 
 // Search searches across the index for matching endpoints.
@@ -111,7 +147,7 @@ func (idx *Index) Search(query string) []EndpointSummary {
 			}
 		}
 	}
-	return results
+	return sortSummaries(results)
 }
 
 func matches(query, path string, detail *EndpointDetail) bool {
