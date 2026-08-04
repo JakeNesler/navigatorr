@@ -64,7 +64,7 @@ func main() {
 		"navigatorr",
 		"1.0.0",
 		server.WithToolCapabilities(true),
-		server.WithInstructions("Navigatorrr provides tools to browse *arr service API documentation, make authenticated API calls to Sonarr/Radarr/Lidarr/Jellyseerr/etc., manage Transmission torrents, and manage qBittorrent torrents. Use list_services to see available services, search_api to find endpoints, and call_api to make requests."),
+		server.WithInstructions("Navigatorrr provides tools to browse *arr service API documentation, make authenticated API calls to Sonarr/Radarr/Lidarr/Seerr/etc., manage Transmission torrents, and manage qBittorrent torrents. Use list_services to see available services, search_api to find endpoints, and call_api to make requests."),
 	)
 
 	// Register all tools

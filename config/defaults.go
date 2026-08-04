@@ -10,6 +10,7 @@ var DefaultPorts = map[string]int{
 	"bazarr":    6767,
 	"overseerr":      5055,
 	"jellyseerr":     5055,
+	"seerr":          5055,
 	"audiobookshelf": 13378,
 }
 
@@ -23,6 +24,7 @@ var DefaultAPIVersions = map[string]string{
 	"bazarr":    "/api",
 	"overseerr":      "/api/v1",
 	"jellyseerr":     "/api/v1",
+	"seerr":          "/api/v1",
 	"audiobookshelf": "/api",
 }
 
@@ -34,7 +36,8 @@ var DefaultOpenAPIURLs = map[string]string{
 	"readarr":   "https://raw.githubusercontent.com/Readarr/Readarr/develop/src/Readarr.Api.V1/openapi.json",
 	"prowlarr":  "https://raw.githubusercontent.com/Prowlarr/Prowlarr/develop/src/Prowlarr.Api.V1/openapi.json",
 	"overseerr":      "https://raw.githubusercontent.com/sct/overseerr/develop/overseerr-api.yml",
-	"jellyseerr":     "https://raw.githubusercontent.com/Fallenbagel/jellyseerr/develop/overseerr-api.yml",
+	"jellyseerr":     "https://raw.githubusercontent.com/seerr-team/seerr/refs/heads/develop/seerr-api.yml",
+	"seerr":          "https://raw.githubusercontent.com/seerr-team/seerr/refs/heads/develop/seerr-api.yml",
 	"audiobookshelf": "https://raw.githubusercontent.com/advplyr/audiobookshelf/master/docs/openapi.json",
 }
 
@@ -48,6 +51,7 @@ var DefaultAuthMethods = map[string]string{
 	"bazarr":    "header",   // X-Api-Key header
 	"overseerr":      "header", // X-Api-Key header
 	"jellyseerr":     "header", // X-Api-Key header
+	"seerr":          "header", // X-Api-Key header
 	"audiobookshelf": "header", // Authorization: Bearer <token>
 }
 

@@ -136,11 +136,11 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 			hint += "\nYou can also use filter and limit params."
 			hint += "\nDo NOT retry this call without fields, filter, or limit."
 
-			return mcp.NewToolResultError(hint), nil
+			return mcp.NewToolResultText(hint), nil
 		}
 
 		// No array found — generic size warning
-		return mcp.NewToolResultError(fmt.Sprintf(
+		return mcp.NewToolResultText(fmt.Sprintf(
 			"⚠️ Response too large (%dKB). Use fields param to reduce response size.",
 			len(data)/1024)), nil
 	}
