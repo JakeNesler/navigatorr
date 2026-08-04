@@ -294,19 +294,19 @@ qbittorrent:
 
 ### Service Defaults
 
-Navigatorr auto-configures these for known services — you only need `url` and `api_key`:
+Navigatorr auto-configures these for known services — you only need `api_key`:
 
-| Service | API Version | Auth Method | OpenAPI Spec |
-|---------|------------|-------------|--------------|
-| Sonarr | `/api/v3` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Radarr | `/api/v3` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Lidarr | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Readarr | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Prowlarr | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Bazarr | `/api` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Overseerr | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Jellyseerr | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
-| Seerr | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Service | Default Port | API Version | Auth Method | OpenAPI Spec |
+|---------|-------------|------------|-------------|--------------|
+| Sonarr | `8989` | `/api/v3` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Radarr | `7878` | `/api/v3` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Lidarr | `8686` | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Readarr | `8787` | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Prowlarr | `9696` | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Bazarr | `6767` | `/api` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Overseerr | `5055` | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Jellyseerr | `5055` | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
+| Seerr | `5055` | `/api/v1` | `X-Api-Key` header | Auto-fetched from GitHub |
 
 You can override any default with explicit config:
 

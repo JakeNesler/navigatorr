@@ -2,8 +2,12 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -91,6 +95,11 @@ func Load(path string) (*Config, error) {
 				svc.OpenAPIURL = u
 			}
 		}
+		resolved, err := resolveURL(name, svc.URL)
+		if err != nil {
+			return nil, err
+		}
+		svc.URL = resolved
 		cfg.Services[name] = svc
 	}
 
@@ -100,4 +109,35 @@ func Load(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// resolveURL normalizes a service URL, filling in the scheme and the service's
+// default port when they are absent. An omitted URL falls back to localhost;
+// list_services reports the resolved URL, so a wrong guess is visible rather
+// than a confusing failure on the first API call.
+func resolveURL(name, raw string) (string, error) {
+	port, known := DefaultPorts[name]
+
+	if raw == "" {
+		if !known {
+			return "", fmt.Errorf("service %q: url is required (no default port for this service)", name)
+		}
+		return fmt.Sprintf("http://localhost:%d", port), nil
+	}
+
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("service %q: parsing url %q: %w", name, raw, err)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("service %q: url %q has no host", name, raw)
+	}
+	if u.Port() == "" && known {
+		u.Host = net.JoinHostPort(u.Hostname(), strconv.Itoa(port))
+	}
+
+	return strings.TrimRight(u.String(), "/"), nil
 }

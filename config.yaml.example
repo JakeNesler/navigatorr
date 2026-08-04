@@ -1,5 +1,9 @@
 # Navigatorrr configuration
 # Copy to ~/.config/navigatorr/config.yaml and fill in your values
+#
+# `url` is optional for known services — it defaults to http://localhost:<default port>.
+# Give just the host ("url: 10.0.0.100") and the default port is appended.
+# Run list_services to see what each service resolved to.
 
 services:
   sonarr:
