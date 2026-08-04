@@ -36,7 +36,7 @@ var DefaultOpenAPIURLs = map[string]string{
 	"readarr":   "https://raw.githubusercontent.com/Readarr/Readarr/develop/src/Readarr.Api.V1/openapi.json",
 	"prowlarr":  "https://raw.githubusercontent.com/Prowlarr/Prowlarr/develop/src/Prowlarr.Api.V1/openapi.json",
 	"overseerr":      "https://raw.githubusercontent.com/sct/overseerr/develop/overseerr-api.yml",
-	"jellyseerr":     "https://raw.githubusercontent.com/Fallenbagel/jellyseerr/develop/overseerr-api.yml",
+	"jellyseerr":     "https://raw.githubusercontent.com/seerr-team/seerr/refs/heads/develop/seerr-api.yml",
 	"seerr":          "https://raw.githubusercontent.com/seerr-team/seerr/refs/heads/develop/seerr-api.yml",
 	"audiobookshelf": "https://raw.githubusercontent.com/advplyr/audiobookshelf/master/docs/openapi.json",
 }
