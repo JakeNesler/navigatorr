@@ -2,12 +2,12 @@ package config
 
 // DefaultPorts maps service type to default port.
 var DefaultPorts = map[string]int{
-	"sonarr":    8989,
-	"radarr":    7878,
-	"lidarr":    8686,
-	"readarr":   8787,
-	"prowlarr":  9696,
-	"bazarr":    6767,
+	"sonarr":         8989,
+	"radarr":         7878,
+	"lidarr":         8686,
+	"readarr":        8787,
+	"prowlarr":       9696,
+	"bazarr":         6767,
 	"overseerr":      5055,
 	"jellyseerr":     5055,
 	"seerr":          5055,
@@ -16,12 +16,12 @@ var DefaultPorts = map[string]int{
 
 // DefaultAPIVersions maps service type to API path prefix.
 var DefaultAPIVersions = map[string]string{
-	"sonarr":    "/api/v3",
-	"radarr":    "/api/v3",
-	"lidarr":    "/api/v1",
-	"readarr":   "/api/v1",
-	"prowlarr":  "/api/v1",
-	"bazarr":    "/api",
+	"sonarr":         "/api/v3",
+	"radarr":         "/api/v3",
+	"lidarr":         "/api/v1",
+	"readarr":        "/api/v1",
+	"prowlarr":       "/api/v1",
+	"bazarr":         "/api",
 	"overseerr":      "/api/v1",
 	"jellyseerr":     "/api/v1",
 	"seerr":          "/api/v1",
@@ -30,11 +30,11 @@ var DefaultAPIVersions = map[string]string{
 
 // DefaultOpenAPIURLs maps service type to raw GitHub URL for OpenAPI spec.
 var DefaultOpenAPIURLs = map[string]string{
-	"sonarr":    "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/src/Sonarr.Api.V3/openapi.json",
-	"radarr":    "https://raw.githubusercontent.com/Radarr/Radarr/develop/src/Radarr.Api.V3/openapi.json",
-	"lidarr":    "https://raw.githubusercontent.com/Lidarr/Lidarr/develop/src/Lidarr.Api.V1/openapi.json",
-	"readarr":   "https://raw.githubusercontent.com/Readarr/Readarr/develop/src/Readarr.Api.V1/openapi.json",
-	"prowlarr":  "https://raw.githubusercontent.com/Prowlarr/Prowlarr/develop/src/Prowlarr.Api.V1/openapi.json",
+	"sonarr":         "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/src/Sonarr.Api.V3/openapi.json",
+	"radarr":         "https://raw.githubusercontent.com/Radarr/Radarr/develop/src/Radarr.Api.V3/openapi.json",
+	"lidarr":         "https://raw.githubusercontent.com/Lidarr/Lidarr/develop/src/Lidarr.Api.V1/openapi.json",
+	"readarr":        "https://raw.githubusercontent.com/Readarr/Readarr/develop/src/Readarr.Api.V1/openapi.json",
+	"prowlarr":       "https://raw.githubusercontent.com/Prowlarr/Prowlarr/develop/src/Prowlarr.Api.V1/openapi.json",
 	"overseerr":      "https://raw.githubusercontent.com/sct/overseerr/develop/overseerr-api.yml",
 	"jellyseerr":     "https://raw.githubusercontent.com/seerr-team/seerr/refs/heads/develop/seerr-api.yml",
 	"seerr":          "https://raw.githubusercontent.com/seerr-team/seerr/refs/heads/develop/seerr-api.yml",
@@ -43,12 +43,12 @@ var DefaultOpenAPIURLs = map[string]string{
 
 // DefaultAuthMethods maps service type to authentication method.
 var DefaultAuthMethods = map[string]string{
-	"sonarr":    "header",   // X-Api-Key header
-	"radarr":    "header",   // X-Api-Key header
-	"lidarr":    "header",   // X-Api-Key header
-	"readarr":   "header",   // X-Api-Key header
-	"prowlarr":  "header",   // X-Api-Key header
-	"bazarr":    "header",   // X-Api-Key header
+	"sonarr":         "header", // X-Api-Key header
+	"radarr":         "header", // X-Api-Key header
+	"lidarr":         "header", // X-Api-Key header
+	"readarr":        "header", // X-Api-Key header
+	"prowlarr":       "header", // X-Api-Key header
+	"bazarr":         "header", // X-Api-Key header
 	"overseerr":      "header", // X-Api-Key header
 	"jellyseerr":     "header", // X-Api-Key header
 	"seerr":          "header", // X-Api-Key header
@@ -58,6 +58,21 @@ var DefaultAuthMethods = map[string]string{
 // DefaultAuthHeaders maps service type to auth header name override.
 var DefaultAuthHeaders = map[string]string{
 	"audiobookshelf": "Authorization",
+}
+
+// DefaultStatusPaths maps service type to a cheap authenticated endpoint used
+// to report connection status. Relative to the service's API version prefix.
+var DefaultStatusPaths = map[string]string{
+	"sonarr":         "/system/status",
+	"radarr":         "/system/status",
+	"lidarr":         "/system/status",
+	"readarr":        "/system/status",
+	"prowlarr":       "/system/status",
+	"bazarr":         "/system/status",
+	"overseerr":      "/status",
+	"jellyseerr":     "/status",
+	"seerr":          "/status",
+	"audiobookshelf": "/ping",
 }
 
 // DefaultAuthPrefixes maps service type to auth value prefix.

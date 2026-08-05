@@ -16,7 +16,7 @@ Navigatorr gives the LLM 16 tools over MCP. The LLM doesn't need to know API doc
 
 | Tool | When to Use |
 |------|-------------|
-| `list_services` | First call in any session. Shows what's configured, connection status, and endpoint counts. |
+| `list_services` | First call in any session. Shows what's configured, endpoint counts, and live connection status — each service is probed concurrently with a 5s budget. `status` is `ok`, `unauthorized — check api_key`, `http <code>`, or `unreachable: <reason>`. |
 | `search_api` | When you need to find an endpoint but don't know the exact path. Searches across all services. |
 | `list_endpoints` | Browse all endpoints for a service, optionally filtered by tag (e.g. "Series", "Movie") or method. |
 | `get_endpoint_details` | Get full parameter schemas and request/response bodies for a specific endpoint before making a call. |

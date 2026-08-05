@@ -10,14 +10,16 @@ type Service struct {
 	Config     config.ServiceConfig
 	Auth       AuthStrategy
 	BaseURL    string // URL + APIVersion, e.g. "http://10.0.0.100:8989/api/v3"
+	StatusPath string // cheap authenticated endpoint for Ping, may be empty
 }
 
 // NewService creates a Service from config.
 func NewService(name string, cfg config.ServiceConfig) *Service {
 	svc := &Service{
-		Name:    name,
-		Config:  cfg,
-		BaseURL: cfg.URL + cfg.APIVersion,
+		Name:       name,
+		Config:     cfg,
+		BaseURL:    cfg.URL + cfg.APIVersion,
+		StatusPath: config.DefaultStatusPaths[name],
 	}
 
 	switch cfg.AuthMethod {

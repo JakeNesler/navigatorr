@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/jakenesler/navigatorr/arrservice"
 	"github.com/jakenesler/navigatorr/openapi"
@@ -83,18 +85,32 @@ func registerDocTools(s *server.MCPServer, registry *arrservice.Registry, store 
 	)
 }
 
-func handleListServices(_ context.Context, registry *arrservice.Registry, store *openapi.Store) (*mcp.CallToolResult, error) {
+// statusTimeout bounds the whole connection-status sweep. Services are probed
+// concurrently, so one unreachable host cannot stall the others.
+const statusTimeout = 5 * time.Second
+
+func handleListServices(ctx context.Context, registry *arrservice.Registry, store *openapi.Store) (*mcp.CallToolResult, error) {
 	type svcInfo struct {
 		Name       string `json:"name"`
 		URL        string `json:"url"`
 		AuthMethod string `json:"auth_method"`
+		Status     string `json:"status"`
 		HasSpec    bool   `json:"has_spec"`
 		Endpoints  int    `json:"endpoints,omitempty"`
 	}
 
-	var services []svcInfo
-	for _, name := range registry.List() {
-		svc, _ := registry.Get(name)
+	names := registry.List()
+	services := make([]svcInfo, len(names))
+
+	pingCtx, cancel := context.WithTimeout(ctx, statusTimeout)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	for i, name := range names {
+		svc, err := registry.Get(name)
+		if err != nil {
+			continue
+		}
 		info := svcInfo{
 			Name:       name,
 			URL:        svc.Config.URL,
@@ -104,8 +120,15 @@ func handleListServices(_ context.Context, registry *arrservice.Registry, store 
 			info.HasSpec = true
 			info.Endpoints = idx.Count()
 		}
-		services = append(services, info)
+		services[i] = info
+
+		wg.Add(1)
+		go func(i int, svc *arrservice.Service) {
+			defer wg.Done()
+			services[i].Status = svc.Ping(pingCtx)
+		}(i, svc)
 	}
+	wg.Wait()
 
 	data, _ := json.MarshalIndent(services, "", "  ")
 	return mcp.NewToolResultText(string(data)), nil
