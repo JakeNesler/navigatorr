@@ -13,11 +13,11 @@ import (
 )
 
 type Config struct {
-	Services           map[string]ServiceConfig `yaml:"services"`
-	Transmission       TransmissionConfig       `yaml:"transmission"`
-	QBittorrent        QBittorrentConfig        `yaml:"qbittorrent"`
-	MaxResponseSizeKB  int                      `yaml:"max_response_size_kb"`
-	AllowDestructive   bool                     `yaml:"allow_destructive"`
+	Services          map[string]ServiceConfig `yaml:"services"`
+	Transmission      TransmissionConfig       `yaml:"transmission"`
+	QBittorrent       QBittorrentConfig        `yaml:"qbittorrent"`
+	MaxResponseSizeKB int                      `yaml:"max_response_size_kb"`
+	AllowDestructive  bool                     `yaml:"allow_destructive"`
 }
 
 type ServiceConfig struct {

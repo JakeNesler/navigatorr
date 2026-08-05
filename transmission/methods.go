@@ -129,19 +129,19 @@ func parseTorrents(resp *rpcResponse) ([]TorrentInfo, error) {
 	torrents := make([]TorrentInfo, 0, len(rawTorrents))
 	for _, rt := range rawTorrents {
 		t := TorrentInfo{
-			ID:            intVal(rt, "id"),
-			Name:          strVal(rt, "name"),
-			Status:        intVal(rt, "status"),
-			PercentDone:   floatVal(rt, "percentDone"),
-			TotalSize:     int64Val(rt, "totalSize"),
+			ID:             intVal(rt, "id"),
+			Name:           strVal(rt, "name"),
+			Status:         intVal(rt, "status"),
+			PercentDone:    floatVal(rt, "percentDone"),
+			TotalSize:      int64Val(rt, "totalSize"),
 			DownloadedEver: int64Val(rt, "downloadedEver"),
-			UploadedEver:  int64Val(rt, "uploadedEver"),
-			RateDownload:  int64Val(rt, "rateDownload"),
-			RateUpload:    int64Val(rt, "rateUpload"),
-			ETA:           intVal(rt, "eta"),
-			Error:         intVal(rt, "error"),
-			ErrorString:   strVal(rt, "errorString"),
-			DownloadDir:   strVal(rt, "downloadDir"),
+			UploadedEver:   int64Val(rt, "uploadedEver"),
+			RateDownload:   int64Val(rt, "rateDownload"),
+			RateUpload:     int64Val(rt, "rateUpload"),
+			ETA:            intVal(rt, "eta"),
+			Error:          intVal(rt, "error"),
+			ErrorString:    strVal(rt, "errorString"),
+			DownloadDir:    strVal(rt, "downloadDir"),
 		}
 		t.StatusText = StatusName(t.Status)
 		torrents = append(torrents, t)
