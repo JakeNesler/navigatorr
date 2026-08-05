@@ -110,16 +110,26 @@ func registerSabnzbdTools(s *server.MCPServer, client *sabnzbd.Client, allowDest
 		mcp.NewTool("sabnzbd_manage_item",
 			mcp.WithDescription("Pause, resume, delete, reprioritise, or move a SABnzbd job by nzo_id. SABnzbd reports success for job ids that do not exist, so success means the request was accepted, not that the job was found"),
 			mcp.WithString("action", mcp.Required(), mcp.Description("Action: pause, resume, delete, delete_files, priority, move")),
-			mcp.WithString("nzo_id", mcp.Required(), mcp.Description("Job id, or \"all\" where SABnzbd accepts it")),
+			mcp.WithString("nzo_id", mcp.Required(), mcp.Description("Job id, or \"all\" where SABnzbd accepts it. For target=history also accepts \"failed\" and \"completed\"")),
 			mcp.WithString("value", mcp.Description("Priority name for priority, or target job id or queue position for move")),
+			mcp.WithString("target", mcp.Description("Which list the id refers to for delete: \"queue\" (default) or \"history\"")),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			action := mcp.ParseString(req, "action", "")
 			nzoID := mcp.ParseString(req, "nzo_id", "")
 			value := mcp.ParseString(req, "value", "")
+			target := mcp.ParseString(req, "target", "queue")
 
 			if nzoID == "" {
 				return mcp.NewToolResultError("nzo_id is required"), nil
+			}
+			if target != "queue" && target != "history" {
+				return mcp.NewToolResultError(fmt.Sprintf("unknown target %q (use: queue, history)", target)), nil
+			}
+			// Only delete reads two lists. Silently treating target=history as a
+			// pause of the queue job with that id would be worse than refusing.
+			if target == "history" && action != "delete" && action != "delete_files" {
+				return mcp.NewToolResultError(fmt.Sprintf("target=history only applies to delete and delete_files, not %q", action)), nil
 			}
 
 			// SABnzbd deletes are GET requests carrying name=delete, so the
@@ -136,9 +146,17 @@ func registerSabnzbdTools(s *server.MCPServer, client *sabnzbd.Client, allowDest
 			case "pause", "resume":
 				body, err = client.QueueAction(ctx, action, nzoID, "")
 			case "delete":
-				body, err = client.QueueAction(ctx, "delete", nzoID, "")
+				if target == "history" {
+					body, err = client.DeleteHistory(ctx, nzoID, false)
+				} else {
+					body, err = client.QueueAction(ctx, "delete", nzoID, "")
+				}
 			case "delete_files":
-				body, err = client.Do(ctx, "queue", map[string]string{"name": "delete", "value": nzoID, "del_files": "1"})
+				if target == "history" {
+					body, err = client.DeleteHistory(ctx, nzoID, true)
+				} else {
+					body, err = client.Do(ctx, "queue", map[string]string{"name": "delete", "value": nzoID, "del_files": "1"})
+				}
 			case "priority":
 				mapped, ok := sabPriorities[value]
 				if !ok {

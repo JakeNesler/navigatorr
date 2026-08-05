@@ -122,7 +122,7 @@ SABnzbd has no OpenAPI spec and dispatches everything from a `mode` query parame
 | `sabnzbd_list_queue` | Active downloads with status, progress, and speed |
 | `sabnzbd_history` | Finished and failed downloads, filterable by category, search term, or failures only |
 | `sabnzbd_add_nzb` | Queue an NZB by URL, with optional name, category, and priority |
-| `sabnzbd_manage_item` | Pause, resume, delete, reprioritise, or move a job by `nzo_id` |
+| `sabnzbd_manage_item` | Pause, resume, delete, reprioritise, or move a job by `nzo_id`. Deletes take `target` to pick the queue (default) or the history |
 | `sabnzbd_status` | Version, speed, disk space, paused state, and warning count |
 
 Deleting is covered by `allow_destructive`. SABnzbd deletes are GET requests carrying `name=delete`, so the `call_api` DELETE guard does not apply to them and these tools check the setting themselves.

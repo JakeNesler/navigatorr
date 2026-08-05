@@ -87,6 +87,19 @@ func (c *Client) QueueAction(ctx context.Context, action, nzoID, value2 string) 
 	return c.Do(ctx, "queue", params)
 }
 
+// DeleteHistory removes history entries. nzoID also accepts SABnzbd's "all",
+// "failed" and "completed" selectors.
+func (c *Client) DeleteHistory(ctx context.Context, nzoID string, deleteFiles bool) ([]byte, error) {
+	params := map[string]string{
+		"name":  "delete",
+		"value": nzoID,
+	}
+	if deleteFiles {
+		params["del_files"] = "1"
+	}
+	return c.Do(ctx, "history", params)
+}
+
 // Move puts a job above another job, or at a queue position when target is a number.
 func (c *Client) Move(ctx context.Context, nzoID, target string) ([]byte, error) {
 	return c.Do(ctx, "switch", map[string]string{
