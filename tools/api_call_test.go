@@ -185,3 +185,46 @@ func TestTruncate(t *testing.T) {
 		t.Error("truncate should keep the first max bytes")
 	}
 }
+
+// Some APIs wrap their list one level deeper than the *arr convention, e.g.
+// SABnzbd returns {"history": {"slots": [...]}} rather than {"records": [...]}.
+// Field selection used to return an empty object for those: the drilling check
+// only looked for an array directly under the requested key, and pickFields had
+// no branch for arrays, so "history.slots.name" was dropped without an error.
+func TestCallAPINestedArrayFields(t *testing.T) {
+	body := `{"history":{"noofslots":2,"slots":[
+		{"name":"first release","size":"1.2 GB","fail_message":""},
+		{"name":"second release","size":"3.4 GB","fail_message":"bad par2"}
+	]}}`
+
+	res := callAPI(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(body))
+	}, map[string]any{"path": "/api", "fields": "history.slots.name"})
+
+	got := resultText(t, res)
+	for _, want := range []string{"first release", "second release"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("field selection dropped %q from a two-level response:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "3.4 GB") {
+		t.Errorf("field selection returned unrequested fields:\n%s", got)
+	}
+}
+
+// The one-level *arr shape has to keep working unchanged.
+func TestCallAPISingleLevelArrayFieldsStillWork(t *testing.T) {
+	body := `{"page":1,"records":[{"title":"a","year":2001},{"title":"b","year":2002}]}`
+
+	res := callAPI(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(body))
+	}, map[string]any{"path": "/wanted/missing", "fields": "records.title"})
+
+	got := resultText(t, res)
+	if !strings.Contains(got, `"a"`) || !strings.Contains(got, `"b"`) {
+		t.Errorf("records.title stopped working:\n%s", got)
+	}
+	if strings.Contains(got, "2001") {
+		t.Errorf("records.title returned unrequested fields:\n%s", got)
+	}
+}
