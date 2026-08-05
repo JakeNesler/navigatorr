@@ -180,15 +180,21 @@ func processResponse(resp any, fieldsStr, filterStr, limitStr string) any {
 		// Group fields by their top-level key to detect array drilling
 		// e.g. "records.title,records.year,page" → {records: [title, year], page: []}
 		grouped := make(map[string][]string)
+		nested := make(map[string][]string)
 		var topFields []string
 		for _, f := range fields {
 			parts := strings.SplitN(f, ".", 2)
 			key := parts[0]
 			if len(parts) == 2 {
 				// Check if this key holds an array — if so, treat as array field selection
-				if arr, ok := obj[key].([]any); ok {
+				if _, ok := obj[key].([]any); ok {
 					grouped[key] = append(grouped[key], parts[1])
-					_ = arr
+					continue
+				}
+				// The array can sit deeper, as in {history: {slots: [...]}}. Recurse
+				// so the rest of the path is resolved against the sub-object.
+				if _, ok := obj[key].(map[string]any); ok && strings.Contains(parts[1], ".") {
+					nested[key] = append(nested[key], parts[1])
 					continue
 				}
 			}
@@ -196,7 +202,7 @@ func processResponse(resp any, fieldsStr, filterStr, limitStr string) any {
 		}
 
 		// Process array fields with sub-selection
-		if len(grouped) > 0 {
+		if len(grouped) > 0 || len(nested) > 0 {
 			result := make(map[string]any)
 			// Keep any requested top-level scalar fields
 			if len(topFields) > 0 {
@@ -213,6 +219,14 @@ func processResponse(resp any, fieldsStr, filterStr, limitStr string) any {
 				}
 				subFieldsStr := strings.Join(subFields, ",")
 				result[key] = processArray(arr, subFieldsStr, filterStr, limitStr)
+			}
+			// Drill into sub-objects
+			for key, subPaths := range nested {
+				sub, ok := obj[key].(map[string]any)
+				if !ok {
+					continue
+				}
+				result[key] = processResponse(sub, strings.Join(subPaths, ","), filterStr, limitStr)
 			}
 			return result
 		}
@@ -261,25 +275,31 @@ func processArray(arr []any, fieldsStr, filterStr, limitStr string) any {
 	return arr
 }
 
-// findLargestArray finds the largest []any in a response, checking both
-// top-level arrays and arrays nested one level deep in objects.
-// Returns the array and the field path (empty for top-level).
+// findLargestArray finds the largest []any in a response, walking nested objects
+// so envelopes like {history: {slots: [...]}} are found as well as {records: [...]}.
+// Returns the array and its dotted field path (empty for a top-level array).
 func findLargestArray(resp any) ([]any, string) {
 	if arr, ok := resp.([]any); ok {
 		return arr, ""
 	}
-	if obj, ok := resp.(map[string]any); ok {
-		var largest []any
-		var largestKey string
-		for k, v := range obj {
-			if arr, ok := v.([]any); ok && len(arr) > len(largest) {
-				largest = arr
-				largestKey = k
-			}
-		}
-		return largest, largestKey
+	obj, ok := resp.(map[string]any)
+	if !ok {
+		return nil, ""
 	}
-	return nil, ""
+	var largest []any
+	var largestPath string
+	for k, v := range obj {
+		arr, path := findLargestArray(v)
+		if len(arr) <= len(largest) {
+			continue
+		}
+		largest = arr
+		largestPath = k
+		if path != "" {
+			largestPath = k + "." + path
+		}
+	}
+	return largest, largestPath
 }
 
 // joinWithPrefix joins field names with a prefix for display.
