@@ -11,7 +11,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func registerTransmissionTools(s *server.MCPServer, client *transmission.Client) {
+func registerTransmissionTools(s *server.MCPServer, client *transmission.Client, allowDestructive bool) {
 	// transmission_list_torrents
 	s.AddTool(
 		mcp.NewTool("transmission_list_torrents",
@@ -61,6 +61,12 @@ func registerTransmissionTools(s *server.MCPServer, client *transmission.Client)
 			ids, err := parseIDs(idsStr)
 			if err != nil {
 				return mcp.NewToolResultError(err.Error()), nil
+			}
+
+			// Transmission removals ride on torrent-remove in the RPC body, so
+			// the DELETE-verb guard in call_api never sees them either.
+			if (action == "remove" || action == "remove_data") && !allowDestructive {
+				return mcp.NewToolResultError("Removing is disabled. Set allow_destructive: true in config.yaml to enable."), nil
 			}
 
 			switch action {
