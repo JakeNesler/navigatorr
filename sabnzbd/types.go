@@ -61,8 +61,3 @@ type History struct {
 	NoOfSlots int           `json:"noofslots"`
 	Slots     []HistorySlot `json:"slots"`
 }
-
-// Version is the mode=version response.
-type Version struct {
-	Version string `json:"version"`
-}

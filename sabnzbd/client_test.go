@@ -114,6 +114,42 @@ func TestGetHistoryUnwrapsSlots(t *testing.T) {
 	}
 }
 
+// The API key travels in the query string, and a *url.Error stringifies the URL
+// it was built from. These errors go straight into tool output, so the key must
+// not survive into the message on either the transport or the request-building
+// path.
+func TestDoErrorsDoNotCarryAPIKey(t *testing.T) {
+	const key = "SUPER-SECRET-APIKEY"
+
+	// A closed listener gives a deterministic connection failure without
+	// depending on a port being free.
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	closedURL := srv.URL
+	srv.Close()
+
+	tests := []struct {
+		name    string
+		baseURL string
+	}{
+		{"transport failure", closedURL},
+		{"request build failure", "http://127.0.0.1:\x7f"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := NewClient(tt.baseURL, "", key)
+
+			_, err := client.Do(context.Background(), "queue", nil)
+			if err == nil {
+				t.Fatal("expected an error, got nil")
+			}
+			if strings.Contains(err.Error(), key) {
+				t.Errorf("API key leaked into error: %v", err)
+			}
+		})
+	}
+}
+
 func TestQueueActionSendsNameAndValue(t *testing.T) {
 	client, query := stub(t, `{"status":true}`, 200)
 

@@ -95,42 +95,6 @@ func (c *Client) Move(ctx context.Context, nzoID, target string) ([]byte, error)
 	})
 }
 
-// DeleteHistory removes history entries. nzoID also accepts SABnzbd's "all",
-// "failed" and "completed" selectors.
-func (c *Client) DeleteHistory(ctx context.Context, nzoID string, deleteFiles bool) ([]byte, error) {
-	params := map[string]string{
-		"name":  "delete",
-		"value": nzoID,
-	}
-	if deleteFiles {
-		params["del_files"] = "1"
-	}
-	return c.Do(ctx, "history", params)
-}
-
-// SetPaused pauses or resumes the whole queue.
-func (c *Client) SetPaused(ctx context.Context, paused bool) ([]byte, error) {
-	mode := "resume"
-	if paused {
-		mode = "pause"
-	}
-	return c.Do(ctx, mode, nil)
-}
-
-// GetVersion returns the running SABnzbd version.
-func (c *Client) GetVersion(ctx context.Context) (string, error) {
-	data, err := c.Do(ctx, "version", nil)
-	if err != nil {
-		return "", err
-	}
-
-	var v Version
-	if err := json.Unmarshal(data, &v); err != nil {
-		return "", fmt.Errorf("decoding version: %w", err)
-	}
-	return v.Version, nil
-}
-
 func positive(n int) string {
 	if n <= 0 {
 		return ""

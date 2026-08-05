@@ -108,7 +108,7 @@ func registerSabnzbdTools(s *server.MCPServer, client *sabnzbd.Client, allowDest
 	// sabnzbd_manage_item
 	s.AddTool(
 		mcp.NewTool("sabnzbd_manage_item",
-			mcp.WithDescription("Pause, resume, delete, reprioritise, or move a SABnzbd job by nzo_id"),
+			mcp.WithDescription("Pause, resume, delete, reprioritise, or move a SABnzbd job by nzo_id. SABnzbd reports success for job ids that do not exist, so success means the request was accepted, not that the job was found"),
 			mcp.WithString("action", mcp.Required(), mcp.Description("Action: pause, resume, delete, delete_files, priority, move")),
 			mcp.WithString("nzo_id", mcp.Required(), mcp.Description("Job id, or \"all\" where SABnzbd accepts it")),
 			mcp.WithString("value", mcp.Description("Priority name for priority, or target job id or queue position for move")),
