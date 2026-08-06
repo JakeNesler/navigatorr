@@ -150,6 +150,36 @@ func TestDoErrorsDoNotCarryAPIKey(t *testing.T) {
 	}
 }
 
+// History deletion is a different mode from queue deletion, not a flag on it.
+func TestDeleteHistorySendsHistoryMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		deleteFiles bool
+		wantFiles   bool
+	}{
+		{"record only", false, false},
+		{"with files", true, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, query := stub(t, `{"status":true}`, 200)
+
+			if _, err := client.DeleteHistory(context.Background(), "SABnzbd_nzo_abc", tt.deleteFiles); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			for _, want := range []string{"mode=history", "name=delete", "value=SABnzbd_nzo_abc"} {
+				if !strings.Contains(*query, want) {
+					t.Errorf("query %q missing %q", *query, want)
+				}
+			}
+			if got := strings.Contains(*query, "del_files=1"); got != tt.wantFiles {
+				t.Errorf("del_files=1 present = %v, want %v (query %q)", got, tt.wantFiles, *query)
+			}
+		})
+	}
+}
+
 func TestQueueActionSendsNameAndValue(t *testing.T) {
 	client, query := stub(t, `{"status":true}`, 200)
 
