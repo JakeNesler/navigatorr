@@ -11,7 +11,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func registerQbitTools(s *server.MCPServer, client *qbit.Client) {
+func registerQbitTools(s *server.MCPServer, client *qbit.Client, allowDestructive bool) {
 	// qbit_list_torrents
 	s.AddTool(
 		mcp.NewTool("qbit_list_torrents",
@@ -59,6 +59,12 @@ func registerQbitTools(s *server.MCPServer, client *qbit.Client) {
 			hashes := parseHashes(hashesStr)
 			if len(hashes) == 0 {
 				return mcp.NewToolResultError("hashes is required"), nil
+			}
+
+			// qBittorrent deletes go out as POSTs to /torrents/delete, so the
+			// DELETE-verb guard in call_api never sees them.
+			if (action == "delete" || action == "delete_files") && !allowDestructive {
+				return mcp.NewToolResultError("Deleting is disabled. Set allow_destructive: true in config.yaml to enable."), nil
 			}
 
 			var err error

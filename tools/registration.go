@@ -15,10 +15,10 @@ func RegisterAll(s *server.MCPServer, cfg *config.Config, registry *arrservice.R
 	registerDocTools(s, registry, specStore)
 	registerAPICallTool(s, registry, cfg.MaxResponseSizeKB, cfg.AllowDestructive)
 	if txClient != nil {
-		registerTransmissionTools(s, txClient)
+		registerTransmissionTools(s, txClient, cfg.AllowDestructive)
 	}
 	if qbClient != nil {
-		registerQbitTools(s, qbClient)
+		registerQbitTools(s, qbClient, cfg.AllowDestructive)
 	}
 	if sabClient != nil {
 		registerSabnzbdTools(s, sabClient, cfg.AllowDestructive)

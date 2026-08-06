@@ -164,7 +164,7 @@ Edit `~/.config/navigatorr/config.yaml` with your service URLs and API keys. You
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `max_response_size_kb` | `50` | Response size guard threshold in KB. API responses exceeding this are rejected with a hint to use field selection/filtering instead of consuming the LLM's context window. |
-| `allow_destructive` | `false` | When false, blocks all DELETE requests through `call_api`. Set to `true` to enable deletions. |
+| `allow_destructive` | `false` | When false, blocks all DELETE requests through `call_api`, and refuses the destructive actions in the torrent client tools (`qbit_manage_torrent` delete/delete_files, `transmission_manage_torrent` remove/remove_data). Set to `true` to enable deletions. |
 
 ### Connect to Claude Code
 
