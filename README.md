@@ -18,6 +18,7 @@ Navigatorr acts as a bridge between AI coding assistants and your self-hosted me
 - **Audiobookshelf** — Audiobook management
 - **Transmission** — Torrent client
 - **qBittorrent** — Torrent client
+- **SABnzbd** — Usenet downloader
 
 ## Architecture
 
@@ -72,6 +73,7 @@ Claude Code / MCP Client
    - **API Call tool** — make authenticated requests with field selection, filtering, and pagination. Includes a configurable response size guard that catches oversized responses before they eat the LLM's context window, and optional destructive request protection that blocks DELETE calls unless explicitly enabled.
    - **Transmission tools** — manage torrents (list, add, start, stop, remove, verify, free space)
    - **qBittorrent tools** — manage torrents (list, add, pause, resume, delete, transfer stats)
+   - **SABnzbd tools** — manage Usenet downloads (queue, history, add, pause, resume, delete, reprioritise, move)
 
 5. **Stdio Transport** — Communicates with the MCP client over stdin/stdout using JSON-RPC, making it compatible with any MCP host (Claude Code, Cursor, etc.).
 
@@ -111,6 +113,20 @@ Claude Code / MCP Client
 | `qbit_manage_torrent` | Pause, resume, delete, or delete with files |
 | `qbit_transfer_info` | Global transfer speed and statistics |
 
+### SABnzbd
+
+SABnzbd has no OpenAPI spec and dispatches everything from a `mode` query parameter on a single endpoint, so it gets its own tools rather than going through `call_api`.
+
+| Tool | Description |
+|------|-------------|
+| `sabnzbd_list_queue` | Active downloads with status, progress, and speed |
+| `sabnzbd_history` | Finished and failed downloads, filterable by category, search term, or failures only |
+| `sabnzbd_add_nzb` | Queue an NZB by URL, with optional name, category, and priority |
+| `sabnzbd_manage_item` | Pause, resume, delete, reprioritise, or move a job by `nzo_id` |
+| `sabnzbd_status` | Version, speed, disk space, paused state, and warning count |
+
+Deleting is covered by `allow_destructive`. SABnzbd deletes are GET requests carrying `name=delete`, so the `call_api` DELETE guard does not apply to them and these tools check the setting themselves.
+
 ## Setup
 
 ### Prerequisites
@@ -118,6 +134,7 @@ Claude Code / MCP Client
 - Go 1.25+
 - Running *arr services with API keys
 - (Optional) Transmission and/or qBittorrent torrent client
+- (Optional) SABnzbd for Usenet
 
 ### Option 1: Build from Source
 

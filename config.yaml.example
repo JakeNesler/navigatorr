@@ -32,3 +32,9 @@ transmission:
   url: "http://localhost:9091"
   username: ""
   password: ""
+
+sabnzbd:
+  url: "http://localhost:8080"
+  api_key: "your-sabnzbd-api-key"
+  # SABnzbd's own url_base setting. Ships as /sabnzbd, often cleared.
+  url_base: "/sabnzbd"

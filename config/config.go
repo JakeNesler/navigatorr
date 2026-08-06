@@ -16,6 +16,7 @@ type Config struct {
 	Services          map[string]ServiceConfig `yaml:"services"`
 	Transmission      TransmissionConfig       `yaml:"transmission"`
 	QBittorrent       QBittorrentConfig        `yaml:"qbittorrent"`
+	SABnzbd           SABnzbdConfig            `yaml:"sabnzbd"`
 	MaxResponseSizeKB int                      `yaml:"max_response_size_kb"`
 	AllowDestructive  bool                     `yaml:"allow_destructive"`
 }
@@ -40,6 +41,12 @@ type QBittorrentConfig struct {
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+}
+
+type SABnzbdConfig struct {
+	URL     string `yaml:"url"`
+	APIKey  string `yaml:"api_key"`
+	URLBase string `yaml:"url_base"` // SABnzbd's own url_base, "/sabnzbd" by default
 }
 
 func DefaultConfigPath() string {
