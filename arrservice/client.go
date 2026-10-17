@@ -52,6 +52,19 @@ func sameResource(a, b *url.URL) bool {
 // maxReadBytes caps how much of a response body is read into memory.
 const maxReadBytes = 64 << 20 // 64MB
 
+// unwrapURLError strips the URL from a *url.Error. A service URL can carry a
+// credential in its userinfo or query string, and auth_method: query adds the
+// API key to it, while call_api formats these errors straight into tool output.
+// Both stages need it: url.Parse reports the raw URL it was given, and the
+// transport reports the one it built.
+func unwrapURLError(err error, stage string) error {
+	var uerr *url.Error
+	if errors.As(err, &uerr) && uerr.Err != nil {
+		return fmt.Errorf("%s: %w", stage, uerr.Err)
+	}
+	return fmt.Errorf("%s: %w", stage, err)
+}
+
 // Ping makes a lightweight authenticated request and reports whether the
 // service answers and accepts the API key.
 //
@@ -93,7 +106,7 @@ func (s *Service) doRequest(ctx context.Context, client *http.Client, method, pa
 
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
-		return nil, 0, fmt.Errorf("creating request: %w", err)
+		return nil, 0, unwrapURLError(err, "creating request")
 	}
 
 	if method == "POST" || method == "PUT" || method == "PATCH" || method == "DELETE" {
@@ -115,7 +128,7 @@ func (s *Service) doRequest(ctx context.Context, client *http.Client, method, pa
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("executing request: %w", err)
+		return nil, 0, unwrapURLError(err, "executing request")
 	}
 	defer resp.Body.Close()
 

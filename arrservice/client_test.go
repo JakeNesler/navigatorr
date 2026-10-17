@@ -4,12 +4,61 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/jakenesler/navigatorr/config"
 )
+
+// A *url.Error stringifies the URL it was built from, and call_api formats
+// these errors straight into tool output. The transport reports the URL it
+// built, which for auth_method: query carries the API key, and url.Parse
+// reports the raw one, which can carry a credential the config put there.
+func TestDoRequestErrorsDoNotCarryCredentials(t *testing.T) {
+	// A closed listener gives a deterministic connection failure without
+	// depending on a port being free.
+	closed := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	closedURL := closed.URL
+	closed.Close()
+
+	tests := []struct {
+		name   string
+		cfg    config.ServiceConfig
+		path   string
+		secret string
+	}{
+		{
+			name:   "transport failure carries the applied api key",
+			cfg:    config.ServiceConfig{URL: closedURL, APIVersion: "/sabnzbd", AuthMethod: "query", APIKey: "SECRET-APIKEY"},
+			path:   "/api",
+			secret: "SECRET-APIKEY",
+		},
+		{
+			// The path comes from the model, so it decides whether url.Parse
+			// fails at all.
+			name:   "unparseable url carries credentials from the config",
+			cfg:    config.ServiceConfig{URL: "http://admin:SECRET-PASSWORD@127.0.0.1:9", AuthMethod: "query", APIKey: "k"},
+			path:   "/api\x7f",
+			secret: "SECRET-PASSWORD",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewService("sabnzbd", tt.cfg)
+
+			_, _, err := svc.DoRequest(context.Background(), "GET", tt.path, nil, nil)
+			if err == nil {
+				t.Fatal("expected an error, got nil")
+			}
+			if strings.Contains(err.Error(), tt.secret) {
+				t.Errorf("credential leaked into error: %v", err)
+			}
+		})
+	}
+}
 
 // A service that redirects an unauthenticated API request to its own login or
 // setup page must not report ok, which is what following the redirect produces.
