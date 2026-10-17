@@ -89,6 +89,10 @@ var DefaultStatusPaths = map[string]string{
 	"audiobookshelf": "/me",
 }
 
+// DefaultRequestTimeoutSeconds is the ceiling on a single call_api request,
+// unchanged from the value that was hardcoded before it was configurable.
+const DefaultRequestTimeoutSeconds = 30
+
 // DefaultSelfHostedSpecPaths maps service type to the instance-relative path
 // for services that publish no spec to GitHub but serve one themselves. These
 // resolve against the configured instance URL instead of a fixed URL.

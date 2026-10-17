@@ -20,6 +20,10 @@ type Config struct {
 	Queue             QueueConfig              `yaml:"queue"`
 	MaxResponseSizeKB int                      `yaml:"max_response_size_kb"`
 	AllowDestructive  bool                     `yaml:"allow_destructive"`
+	// RequestTimeoutSeconds bounds a call_api request. Some endpoints spend
+	// most of that budget before sending a byte, so a service with a slow
+	// collection endpoint needs this raised rather than a smaller page.
+	RequestTimeoutSeconds int `yaml:"request_timeout_seconds"`
 }
 
 type ServiceConfig struct {
@@ -133,6 +137,10 @@ func Load(path string) (*Config, error) {
 	// Default response size guard to 50KB if not set.
 	if cfg.MaxResponseSizeKB <= 0 {
 		cfg.MaxResponseSizeKB = 50
+	}
+
+	if cfg.RequestTimeoutSeconds <= 0 {
+		cfg.RequestTimeoutSeconds = DefaultRequestTimeoutSeconds
 	}
 
 	return cfg, nil

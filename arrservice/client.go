@@ -10,11 +10,20 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/jakenesler/navigatorr/config"
 )
 
+// httpClient is the fallback for a Service built without one, and keeps the
+// timeout that was hardcoded before it became configurable.
 var httpClient = &http.Client{
-	Timeout: 30 * time.Second,
+	Timeout: config.DefaultRequestTimeoutSeconds * time.Second,
 }
+
+// pingTimeout stays fixed rather than following request_timeout_seconds. Ping
+// answers "is this service up", and a raised request budget would make
+// list_services sit for minutes on a host that is simply down.
+const pingTimeout = 30 * time.Second
 
 // maxPingRedirects mirrors the cap Go's http.Client applies when CheckRedirect
 // is nil.
@@ -26,7 +35,7 @@ const maxPingRedirects = 10
 // request to its login or setup page, and following that answers 200 and makes
 // Ping report a service nobody can call as ok.
 var pingClient = &http.Client{
-	Timeout: 30 * time.Second,
+	Timeout: pingTimeout,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		// Setting CheckRedirect replaces Go's default cap of 10, so it has to
 		// be reimposed here. A server that alternates /x and /x/ looks like the
@@ -80,7 +89,11 @@ func (s *Service) Ping(ctx context.Context) string {
 
 // DoRequest performs an authenticated HTTP request against a service.
 func (s *Service) DoRequest(ctx context.Context, method, path string, query map[string]string, body []byte) ([]byte, int, error) {
-	return s.doRequest(ctx, httpClient, method, path, query, body)
+	client := s.client
+	if client == nil {
+		client = httpClient
+	}
+	return s.doRequest(ctx, client, method, path, query, body)
 }
 
 func (s *Service) doRequest(ctx context.Context, client *http.Client, method, path string, query map[string]string, body []byte) ([]byte, int, error) {

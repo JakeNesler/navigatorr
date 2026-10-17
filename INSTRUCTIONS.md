@@ -330,6 +330,12 @@ max_response_size_kb: 50
 # Block DELETE requests unless explicitly enabled (default: false)
 allow_destructive: false
 
+# Ceiling on a single call_api request (default: 30)
+# Raise it for a service with a slow collection endpoint. fields and limit are
+# applied after the response arrives, so they do not rescue a request that
+# times out. list_services keeps its own fixed budget.
+request_timeout_seconds: 30
+
 # Optional torrent clients
 transmission:
   url: "http://your-server:9091"

@@ -2,7 +2,9 @@ package arrservice
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
+	"time"
 
 	"github.com/jakenesler/navigatorr/config"
 )
@@ -17,8 +19,20 @@ func NewRegistry(cfg *config.Config) *Registry {
 	r := &Registry{
 		services: make(map[string]*Service),
 	}
+	// config.Load fills this in, but a Config built directly would leave it at
+	// zero, and zero means no timeout to http.Client rather than the default.
+	timeout := cfg.RequestTimeoutSeconds
+	if timeout <= 0 {
+		timeout = config.DefaultRequestTimeoutSeconds
+	}
+	// One client shared across services, so connection reuse is unchanged.
+	client := &http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+	}
 	for name, svcCfg := range cfg.Services {
-		r.services[name] = NewService(name, svcCfg)
+		svc := NewService(name, svcCfg)
+		svc.client = client
+		r.services[name] = svc
 	}
 	return r
 }

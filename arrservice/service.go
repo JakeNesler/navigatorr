@@ -1,6 +1,8 @@
 package arrservice
 
 import (
+	"net/http"
+
 	"github.com/jakenesler/navigatorr/config"
 )
 
@@ -11,6 +13,10 @@ type Service struct {
 	Auth       AuthStrategy
 	BaseURL    string // URL + APIVersion, e.g. "http://10.0.0.100:8989/api/v3"
 	StatusPath string // cheap authenticated endpoint for Ping, may be empty
+
+	// client carries the configured request timeout. Nil falls back to the
+	// package default, which keeps NewService usable on its own.
+	client *http.Client
 }
 
 // NewService creates a Service from config.

@@ -192,6 +192,7 @@ Edit `~/.config/navigatorr/config.yaml` with your service URLs and API keys. You
 |---------|---------|-------------|
 | `max_response_size_kb` | `50` | Response size guard threshold in KB. API responses exceeding this are rejected with a hint to use field selection/filtering instead of consuming the LLM's context window. |
 | `allow_destructive` | `false` | When false, blocks all DELETE requests through `call_api`, and refuses the destructive actions in the torrent client tools (`qbit_manage_torrent` delete/delete_files, `transmission_manage_torrent` remove/remove_data). Set to `true` to enable deletions. |
+| `request_timeout_seconds` | `30` | Ceiling on a single `call_api` request. Raise it for a service with a slow collection endpoint: `fields` and `limit` are applied to the response after it arrives, so they do not help a request that never returns. `list_services` keeps its own fixed budget and is unaffected. |
 
 ### Connect to Claude Code
 
