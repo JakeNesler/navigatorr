@@ -172,6 +172,82 @@ func TestApplyFilter(t *testing.T) {
 	}
 }
 
+func TestCallAPIQueryAuthErrorsDoNotLeakKeys(t *testing.T) {
+	dead := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	base := dead.URL
+	dead.Close()
+	const key = "test-query-secret"
+	registry := arrservice.NewRegistry(&config.Config{Services: map[string]config.ServiceConfig{
+		"custom": {URL: base, APIKey: key, AuthMethod: "query"},
+	}})
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"service": "custom", "path": "/status"}}}
+	res, err := handleCallAPI(context.Background(), req, registry, 50, false)
+	if err != nil || !res.IsError {
+		t.Fatalf("expected a tool error, got %v, %v", res, err)
+	}
+	text := resultText(t, res)
+	if strings.Contains(text, key) || strings.Contains(text, "apikey=") {
+		t.Fatal("query-auth credentials leaked into the tool error")
+	}
+	if !strings.Contains(text, "connection refused") {
+		t.Fatalf("connection failure detail was lost: %s", text)
+	}
+}
+
+func TestCallAPINonJSONSizeLimit(t *testing.T) {
+	for _, size := range []int{100, 50 * 1024, 60 * 1024} {
+		payload := strings.Repeat("x", size)
+		res := callAPI(t, func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(payload))
+		}, map[string]any{"path": "/log/file/sonarr.txt"})
+		text := resultText(t, res)
+		if size < 50*1024 {
+			if !strings.Contains(text, payload) {
+				t.Fatal("small plaintext response was lost")
+			}
+		} else if len(text) > 50*1024 || !strings.Contains(text, "Response too large") {
+			t.Fatalf("oversized plaintext response bypassed guard: %d bytes", len(text))
+		}
+	}
+}
+
+func TestCallAPILargeNumericFilters(t *testing.T) {
+	for _, filter := range []string{"tmdbId:eq:1084242", "tmdbId:ne:1084243", "tmdbId:contains:108424"} {
+		res := callAPI(t, func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(`[{"tmdbId":1084242,"sizeOnDisk":1234567890123}]`))
+		}, map[string]any{"path": "/movie", "filter": filter})
+		if res.IsError || !strings.Contains(resultText(t, res), "1084242") {
+			t.Fatalf("filter %q dropped its matching item: %s", filter, resultText(t, res))
+		}
+	}
+	items := []any{map[string]any{"sizeOnDisk": float64(1234567890123)}}
+	if len(applyFilter(items, "sizeOnDisk:ne:1234567890123")) != 0 {
+		t.Error("numeric ne included an equal value")
+	}
+}
+
+func TestCallAPINumericQueryParameters(t *testing.T) {
+	want := map[string]string{
+		"tvdbId": "1234567", "size": "1234567890123", "timestamp": "1780000000",
+		"negative": "-1234567", "fraction": "0.000001", "enabled": "true", "text": "1e6",
+	}
+	res := callAPI(t, func(w http.ResponseWriter, r *http.Request) {
+		for key, value := range want {
+			if got := r.URL.Query().Get(key); got != value {
+				t.Errorf("query %s = %q, want %q", key, got, value)
+			}
+		}
+		w.Write([]byte(`{}`))
+	}, map[string]any{
+		"path":  "/series/lookup",
+		"query": `{"tvdbId":1234567,"size":1234567890123,"timestamp":1780000000,"negative":-1234567,"fraction":0.000001,"enabled":true,"text":"1e6"}`,
+	})
+	if res.IsError {
+		t.Fatalf("query request failed: %s", resultText(t, res))
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	if got := truncate("short", 100); got != "short" {
 		t.Errorf("truncate should leave short strings alone, got %q", got)

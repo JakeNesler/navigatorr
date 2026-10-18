@@ -186,6 +186,8 @@ cp config.yaml.example ~/.config/navigatorr/config.yaml
 
 Edit `~/.config/navigatorr/config.yaml` with your service URLs and API keys. You can find API keys in each service's Settings > General page.
 
+Use each service's final URL, including its scheme and port. Authenticated requests reject redirects that change scheme, host, or effective port to prevent credential leaks. For example, configure `https://media.example.com` directly if its HTTP address redirects to HTTPS; otherwise requests fail with `cross-origin redirects are disabled`. Same-origin path redirects remain supported; health checks only follow trailing-slash redirects to the same resource.
+
 **Optional global settings:**
 
 | Setting | Default | Description |

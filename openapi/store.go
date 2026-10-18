@@ -50,21 +50,50 @@ func (s *Store) LoadAll(ctx context.Context) {
 }
 
 func (s *Store) load(ctx context.Context, name, url string) error {
-	data, err := Fetch(ctx, url, s.cache)
+	return s.loadSpec(ctx, name, url, false)
+}
+
+func (s *Store) loadSpec(ctx context.Context, name, url string, refresh bool) error {
+	if !refresh {
+		if data := s.cache.Get(url); data != nil {
+			if idx, err := Parse(ctx, name, data); err == nil {
+				s.setIndex(name, idx)
+				return nil
+			}
+		}
+	}
+
+	data, err := Fetch(ctx, url)
+	var idx *Index
+	if err == nil {
+		idx, err = Parse(ctx, name, data)
+	}
 	if err != nil {
+		// Explicit refresh reports failure while keeping the existing cache
+		// and index. Startup can use a valid stale spec to keep docs available.
+		if !refresh && ctx.Err() == nil {
+			if cached := s.cache.GetStale(url); cached != nil {
+				if fallback, parseErr := Parse(ctx, name, cached); parseErr == nil {
+					internal.Logf("using cached spec for %s after fetch failure: %v", name, err)
+					s.setIndex(name, fallback)
+					return nil
+				}
+			}
+		}
 		return err
 	}
 
-	idx, err := Parse(ctx, name, data)
-	if err != nil {
-		return err
+	if err := s.cache.Put(url, data); err != nil {
+		internal.Errorf("caching spec for %s: %v", name, err)
 	}
+	s.setIndex(name, idx)
+	return nil
+}
 
+func (s *Store) setIndex(name string, idx *Index) {
 	s.mu.Lock()
 	s.indices[name] = idx
 	s.mu.Unlock()
-
-	return nil
 }
 
 // GetIndex returns the index for a service.
@@ -105,10 +134,7 @@ func (s *Store) Refresh(ctx context.Context, name string) error {
 		return fmt.Errorf("no OpenAPI URL for %s", name)
 	}
 
-	// Invalidate cache
-	s.cache.Invalidate(svc.OpenAPIURL)
-
-	return s.load(ctx, name, svc.OpenAPIURL)
+	return s.loadSpec(ctx, name, svc.OpenAPIURL, true)
 }
 
 // RefreshAll re-fetches specs for all services.
@@ -118,8 +144,7 @@ func (s *Store) RefreshAll(ctx context.Context) map[string]error {
 		if svc.OpenAPIURL == "" {
 			continue
 		}
-		s.cache.Invalidate(svc.OpenAPIURL)
-		if err := s.load(ctx, name, svc.OpenAPIURL); err != nil {
+		if err := s.loadSpec(ctx, name, svc.OpenAPIURL, true); err != nil {
 			errors[name] = err
 		}
 	}

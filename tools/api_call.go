@@ -63,7 +63,7 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 		}
 		query = make(map[string]string)
 		for k, v := range raw {
-			query[k] = fmt.Sprintf("%v", v)
+			query[k] = formatValue(v)
 		}
 	}
 
@@ -98,11 +98,17 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 			method, path, statusCode, truncate(string(respBody), 2000))), nil
 	}
 
+	maxResponseBytes := maxResponseSizeKB * 1024
 	// Parse response JSON
 	var jsonResp any
 	if err := json.Unmarshal(respBody, &jsonResp); err != nil {
-		// Not JSON, return raw
-		return mcp.NewToolResultText(fmt.Sprintf("status: %d\n%s", statusCode, string(respBody))), nil
+		text := fmt.Sprintf("status: %d\n%s", statusCode, string(respBody))
+		if len(text) > maxResponseBytes {
+			return mcp.NewToolResultText(fmt.Sprintf(
+				"⚠️ Response too large (%dKB). Use service query parameters or request a smaller resource.",
+				len(text)/1024)), nil
+		}
+		return mcp.NewToolResultText(text), nil
 	}
 
 	// Apply filter, fields, limit to responses
@@ -113,7 +119,6 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 
 	// Response size guard — catch oversized responses before they eat the
 	// LLM's context window. Applies to both raw and processed responses.
-	maxResponseBytes := maxResponseSizeKB * 1024
 	data, _ := json.MarshalIndent(jsonResp, "", "  ")
 
 	if len(data) > maxResponseBytes {
@@ -411,9 +416,18 @@ func getNestedField(obj map[string]any, field string) any {
 	return nil
 }
 
+func formatValue(value any) string {
+	if number, ok := value.(float64); ok {
+		// JSON numbers decode as float64. %v uses scientific notation for
+		// large IDs and byte counts, breaking query parameters and filters.
+		return strconv.FormatFloat(number, 'f', -1, 64)
+	}
+	return fmt.Sprintf("%v", value)
+}
+
 // matchFilter checks if a value matches the filter operation.
 func matchFilter(fieldVal any, op, value string) bool {
-	fieldStr := fmt.Sprintf("%v", fieldVal)
+	fieldStr := formatValue(fieldVal)
 
 	switch op {
 	case "contains":

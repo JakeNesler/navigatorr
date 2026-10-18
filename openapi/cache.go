@@ -36,7 +36,13 @@ func (c *Cache) Get(url string) []byte {
 	if time.Since(info.ModTime()) > cacheTTL {
 		return nil
 	}
-	data, err := os.ReadFile(path)
+	return c.GetStale(url)
+}
+
+// GetStale returns the last cached data regardless of age. Callers must parse
+// it before use; this is a fallback when the upstream spec is unavailable.
+func (c *Cache) GetStale(url string) []byte {
+	data, err := os.ReadFile(c.cacheFile(url))
 	if err != nil {
 		return nil
 	}

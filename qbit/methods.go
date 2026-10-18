@@ -3,7 +3,9 @@ package qbit
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -31,25 +33,37 @@ func (c *Client) AddTorrent(ctx context.Context, urls string, savePath string) e
 		form.Set("savepath", savePath)
 	}
 
-	_, err := c.do(ctx, "POST", "/api/v2/torrents/add", form)
-	return err
+	data, err := c.do(ctx, "POST", "/api/v2/torrents/add", form)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(string(data)) == "Fails." {
+		return fmt.Errorf("qBittorrent rejected the torrent")
+	}
+	return nil
 }
 
 // PauseTorrents pauses torrents by hash.
 func (c *Client) PauseTorrents(ctx context.Context, hashes []string) error {
-	form := url.Values{
-		"hashes": {strings.Join(hashes, "|")},
-	}
-	_, err := c.do(ctx, "POST", "/api/v2/torrents/pause", form)
-	return err
+	return c.setTorrentState(ctx, hashes, "stop", "pause")
 }
 
 // ResumeTorrents resumes torrents by hash.
 func (c *Client) ResumeTorrents(ctx context.Context, hashes []string) error {
+	return c.setTorrentState(ctx, hashes, "start", "resume")
+}
+
+func (c *Client) setTorrentState(ctx context.Context, hashes []string, action, legacyAction string) error {
 	form := url.Values{
 		"hashes": {strings.Join(hashes, "|")},
 	}
-	_, err := c.do(ctx, "POST", "/api/v2/torrents/resume", form)
+	_, err := c.do(ctx, "POST", "/api/v2/torrents/"+action, form)
+	// qBittorrent 5 renamed pause/resume to stop/start. Only a missing
+	// endpoint warrants retrying the older name, never an execution failure.
+	var status *httpStatusError
+	if errors.As(err, &status) && status.code == http.StatusNotFound {
+		_, err = c.do(ctx, "POST", "/api/v2/torrents/"+legacyAction, form)
+	}
 	return err
 }
 
