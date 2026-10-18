@@ -227,6 +227,27 @@ func TestCallAPILargeNumericFilters(t *testing.T) {
 	}
 }
 
+func TestCallAPINumericQueryParameters(t *testing.T) {
+	want := map[string]string{
+		"tvdbId": "1234567", "size": "1234567890123", "timestamp": "1780000000",
+		"negative": "-1234567", "fraction": "0.000001", "enabled": "true", "text": "1e6",
+	}
+	res := callAPI(t, func(w http.ResponseWriter, r *http.Request) {
+		for key, value := range want {
+			if got := r.URL.Query().Get(key); got != value {
+				t.Errorf("query %s = %q, want %q", key, got, value)
+			}
+		}
+		w.Write([]byte(`{}`))
+	}, map[string]any{
+		"path":  "/series/lookup",
+		"query": `{"tvdbId":1234567,"size":1234567890123,"timestamp":1780000000,"negative":-1234567,"fraction":0.000001,"enabled":true,"text":"1e6"}`,
+	})
+	if res.IsError {
+		t.Fatalf("query request failed: %s", resultText(t, res))
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	if got := truncate("short", 100); got != "short" {
 		t.Errorf("truncate should leave short strings alone, got %q", got)

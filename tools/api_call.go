@@ -63,7 +63,7 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 		}
 		query = make(map[string]string)
 		for k, v := range raw {
-			query[k] = fmt.Sprintf("%v", v)
+			query[k] = formatValue(v)
 		}
 	}
 
@@ -416,14 +416,18 @@ func getNestedField(obj map[string]any, field string) any {
 	return nil
 }
 
+func formatValue(value any) string {
+	if number, ok := value.(float64); ok {
+		// JSON numbers decode as float64. %v uses scientific notation for
+		// large IDs and byte counts, breaking query parameters and filters.
+		return strconv.FormatFloat(number, 'f', -1, 64)
+	}
+	return fmt.Sprintf("%v", value)
+}
+
 // matchFilter checks if a value matches the filter operation.
 func matchFilter(fieldVal any, op, value string) bool {
-	fieldStr := fmt.Sprintf("%v", fieldVal)
-	if number, ok := fieldVal.(float64); ok {
-		// JSON numbers decode as float64. %v uses scientific notation for
-		// large IDs and byte counts, breaking equality and substring filters.
-		fieldStr = strconv.FormatFloat(number, 'f', -1, 64)
-	}
+	fieldStr := formatValue(fieldVal)
 
 	switch op {
 	case "contains":
