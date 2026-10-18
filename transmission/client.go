@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/jakenesler/navigatorr/internal"
 )
 
 const csrfHeader = "X-Transmission-Session-Id"
@@ -35,7 +37,7 @@ func NewClient(url, username, password string) *Client {
 		url:      url,
 		username: username,
 		password: password,
-		http:     &http.Client{Timeout: 30 * time.Second},
+		http:     &http.Client{Timeout: 30 * time.Second, CheckRedirect: internal.SameOriginRedirect},
 	}
 }
 
@@ -55,7 +57,7 @@ func (c *Client) call(ctx context.Context, method string, args any) (*rpcRespons
 	for attempt := 0; attempt < 2; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewReader(data))
 		if err != nil {
-			return nil, fmt.Errorf("creating request: %w", err)
+			return nil, internal.HTTPError("creating request", err)
 		}
 
 		req.Header.Set("Content-Type", "application/json")
@@ -71,7 +73,7 @@ func (c *Client) call(ctx context.Context, method string, args any) (*rpcRespons
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("executing request: %w", err)
+			return nil, internal.HTTPError("executing request", err)
 		}
 
 		// 409 = need new CSRF token

@@ -98,11 +98,17 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 			method, path, statusCode, truncate(string(respBody), 2000))), nil
 	}
 
+	maxResponseBytes := maxResponseSizeKB * 1024
 	// Parse response JSON
 	var jsonResp any
 	if err := json.Unmarshal(respBody, &jsonResp); err != nil {
-		// Not JSON, return raw
-		return mcp.NewToolResultText(fmt.Sprintf("status: %d\n%s", statusCode, string(respBody))), nil
+		text := fmt.Sprintf("status: %d\n%s", statusCode, string(respBody))
+		if len(text) > maxResponseBytes {
+			return mcp.NewToolResultText(fmt.Sprintf(
+				"⚠️ Response too large (%dKB). Use service query parameters or request a smaller resource.",
+				len(text)/1024)), nil
+		}
+		return mcp.NewToolResultText(text), nil
 	}
 
 	// Apply filter, fields, limit to responses
@@ -113,7 +119,6 @@ func handleCallAPI(ctx context.Context, req mcp.CallToolRequest, registry *arrse
 
 	// Response size guard — catch oversized responses before they eat the
 	// LLM's context window. Applies to both raw and processed responses.
-	maxResponseBytes := maxResponseSizeKB * 1024
 	data, _ := json.MarshalIndent(jsonResp, "", "  ")
 
 	if len(data) > maxResponseBytes {
@@ -414,6 +419,11 @@ func getNestedField(obj map[string]any, field string) any {
 // matchFilter checks if a value matches the filter operation.
 func matchFilter(fieldVal any, op, value string) bool {
 	fieldStr := fmt.Sprintf("%v", fieldVal)
+	if number, ok := fieldVal.(float64); ok {
+		// JSON numbers decode as float64. %v uses scientific notation for
+		// large IDs and byte counts, breaking equality and substring filters.
+		fieldStr = strconv.FormatFloat(number, 'f', -1, 64)
+	}
 
 	switch op {
 	case "contains":

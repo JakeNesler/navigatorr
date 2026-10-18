@@ -3,17 +3,19 @@ package arrservice
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/jakenesler/navigatorr/internal"
 )
 
 var httpClient = &http.Client{
-	Timeout: 30 * time.Second,
+	Timeout:       30 * time.Second,
+	CheckRedirect: internal.SameOriginRedirect,
 }
 
 // maxPingRedirects mirrors the cap Go's http.Client applies when CheckRedirect
@@ -35,7 +37,7 @@ var pingClient = &http.Client{
 		if len(via) >= maxPingRedirects {
 			return http.ErrUseLastResponse
 		}
-		if len(via) == 0 || !sameResource(via[0].URL, req.URL) {
+		if len(via) == 0 || internal.SameOriginRedirect(req, via) != nil || !sameResource(via[0].URL, req.URL) {
 			return http.ErrUseLastResponse
 		}
 		return nil
@@ -54,18 +56,10 @@ const maxReadBytes = 64 << 20 // 64MB
 
 // Ping makes a lightweight authenticated request and reports whether the
 // service answers and accepts the API key.
-//
-// The underlying error is unwrapped rather than formatted, because a *url.Error
-// stringifies the full request URL — which carries the API key for services
-// configured with query auth.
 func (s *Service) Ping(ctx context.Context) string {
 	_, code, err := s.doRequest(ctx, pingClient, "GET", s.StatusPath, nil, nil)
 	if err != nil {
-		var uerr *url.Error
-		if errors.As(err, &uerr) && uerr.Err != nil {
-			return "unreachable: " + uerr.Err.Error()
-		}
-		return "unreachable"
+		return "unreachable: " + err.Error()
 	}
 
 	switch {
@@ -93,7 +87,7 @@ func (s *Service) doRequest(ctx context.Context, client *http.Client, method, pa
 
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
-		return nil, 0, fmt.Errorf("creating request: %w", err)
+		return nil, 0, internal.HTTPError("creating request", err)
 	}
 
 	if method == "POST" || method == "PUT" || method == "PATCH" || method == "DELETE" {
@@ -115,7 +109,7 @@ func (s *Service) doRequest(ctx context.Context, client *http.Client, method, pa
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("executing request: %w", err)
+		return nil, 0, internal.HTTPError("executing request", err)
 	}
 	defer resp.Body.Close()
 

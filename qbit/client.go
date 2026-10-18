@@ -10,7 +10,18 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jakenesler/navigatorr/internal"
 )
+
+type httpStatusError struct {
+	code int
+	body string
+}
+
+func (e *httpStatusError) Error() string {
+	return fmt.Sprintf("HTTP %d: %s", e.code, e.body)
+}
 
 // Client is a qBittorrent Web API client with cookie-based auth.
 type Client struct {
@@ -31,8 +42,9 @@ func NewClient(baseURL, username, password string) *Client {
 		username: username,
 		password: password,
 		http: &http.Client{
-			Timeout: 30 * time.Second,
-			Jar:     jar,
+			Timeout:       30 * time.Second,
+			Jar:           jar,
+			CheckRedirect: internal.SameOriginRedirect,
 		},
 	}
 }
@@ -46,13 +58,13 @@ func (c *Client) login(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.url+"/api/v2/auth/login", strings.NewReader(form.Encode()))
 	if err != nil {
-		return fmt.Errorf("creating login request: %w", err)
+		return internal.HTTPError("creating login request", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("login request: %w", err)
+		return internal.HTTPError("login request", err)
 	}
 	defer resp.Body.Close()
 
@@ -85,7 +97,7 @@ func (c *Client) do(ctx context.Context, method, path string, form url.Values) (
 
 		req, err := http.NewRequestWithContext(ctx, method, c.url+path, body)
 		if err != nil {
-			return nil, fmt.Errorf("creating request: %w", err)
+			return nil, internal.HTTPError("creating request", err)
 		}
 		if form != nil {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -93,7 +105,7 @@ func (c *Client) do(ctx context.Context, method, path string, form url.Values) (
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("executing request: %w", err)
+			return nil, internal.HTTPError("executing request", err)
 		}
 		defer resp.Body.Close()
 
@@ -110,7 +122,7 @@ func (c *Client) do(ctx context.Context, method, path string, form url.Values) (
 		}
 
 		if resp.StatusCode != 200 {
-			return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
+			return nil, &httpStatusError{code: resp.StatusCode, body: string(respBody)}
 		}
 
 		return respBody, nil

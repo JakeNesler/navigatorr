@@ -3,13 +3,14 @@ package sabnzbd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/jakenesler/navigatorr/internal"
 )
 
 // maxReadBytes caps how much of a response body is read into memory.
@@ -33,7 +34,7 @@ func NewClient(baseURL, urlBase, apiKey string) *Client {
 	return &Client{
 		url:    base + "/api",
 		apiKey: apiKey,
-		http:   &http.Client{Timeout: 30 * time.Second},
+		http:   &http.Client{Timeout: 30 * time.Second, CheckRedirect: internal.SameOriginRedirect},
 	}
 }
 
@@ -42,17 +43,6 @@ func NewClient(baseURL, urlBase, apiKey string) *Client {
 type errorEnvelope struct {
 	Status *bool  `json:"status"`
 	Error  string `json:"error"`
-}
-
-// unwrapURLError strips the URL from a *url.Error. SABnzbd auth rides in the
-// query string, so the stringified URL carries the API key, and these errors
-// are formatted straight into tool output.
-func unwrapURLError(err error, stage string) error {
-	var uerr *url.Error
-	if errors.As(err, &uerr) && uerr.Err != nil {
-		return fmt.Errorf("%s: %w", stage, uerr.Err)
-	}
-	return fmt.Errorf("%s: %w", stage, err)
 }
 
 // Do calls a single SABnzbd mode and returns the raw JSON body. Empty params
@@ -70,12 +60,12 @@ func (c *Client) Do(ctx context.Context, mode string, params map[string]string) 
 
 	req, err := http.NewRequestWithContext(ctx, "GET", c.url+"?"+q.Encode(), nil)
 	if err != nil {
-		return nil, unwrapURLError(err, "creating request")
+		return nil, internal.HTTPError("creating request", err)
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, unwrapURLError(err, "executing request")
+		return nil, internal.HTTPError("executing request", err)
 	}
 	defer resp.Body.Close()
 

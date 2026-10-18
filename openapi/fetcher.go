@@ -5,19 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
 var fetchClient = &http.Client{Timeout: 30 * time.Second}
 
-// Fetch downloads an OpenAPI spec, using cache if available.
-func Fetch(ctx context.Context, url string, cache *Cache) ([]byte, error) {
-	// Try cache first
-	if data := cache.Get(url); data != nil {
-		return data, nil
-	}
-
+// Fetch downloads a spec. The store parses it before updating the cache.
+func Fetch(ctx context.Context, url string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -37,12 +31,6 @@ func Fetch(ctx context.Context, url string, cache *Cache) ([]byte, error) {
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading spec: %w", err)
-	}
-
-	// Cache to disk
-	if err := cache.Put(url, data); err != nil {
-		// Non-fatal, just log
-		fmt.Fprintf(os.Stderr, "warning: failed to cache spec: %v\n", err)
 	}
 
 	return data, nil
